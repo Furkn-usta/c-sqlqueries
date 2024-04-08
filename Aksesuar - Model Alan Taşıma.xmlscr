@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="	MalzemeModelMaliyetKosulAtama" Enabled="true" Priority="0" ScriptName="MalzemeModelMaliyetKosulAtama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnColumnChanged(sender, e)
+{
+	if (BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || BaseObject.CurrentRow.Row.IsNull("InventoryType") || BaseObject.CurrentRow.Row["InventoryType"].ToString()!= "100")
+		return null;
+
+
+	if(
+	BaseObject.Extensions.ContainsKey("InventoryRecipeAccessoryServiceExtension") 
+	&amp;&amp; e.Row.Table.TableName == "MA_RecipeItem" 
+	&amp;&amp; e.Column.ColumnName == "InventoryId" 
+	&amp;&amp;e.Row.IsNull("CostGroupCondition") 
+	&amp;&amp; Convert.ToInt16(e.Row["ItemType"]) == 4)
+	{
+		drs = BaseObject.Extensions["InventoryRecipeAccessoryServiceExtension"].RecipeTable.Select("OriginalRowId = " + e.Row["RecId"].ToString());
+	
+		if(drs != null &amp;&amp; drs.Length &gt; 0)
+		{			
+			str="select UD_Kosul from IM_Item where RecId ="+e.Row["InventoryId"].ToString(); 			
+			dt= UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",str); 
+			if(dt!=null &amp;&amp; dt.Rows.Count &gt; 0)
+			{
+			
+				kosul = dt.Rows[0][0].ToString();
+				drs[0].SetField&lt;|String|&gt;("CostGroupCondition",kosul);
+				e.Row.SetField&lt;|String|&gt;("CostGroupCondition",kosul); 	
+			}
+				
+		}
+	}
+}
+
+
+</ScriptText>
+</ScriptDefinition>

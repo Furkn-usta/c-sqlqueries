@@ -1,0 +1,284 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Custom Critical Path" Enabled="false" Priority="0" ScriptName="CustomCP">
+  <Events>
+    <Event Enabled="true" ObjectName="TWorkOrderCriticalPathVM" />
+    <Event Enabled="true" EventName="ViewLoaded" FunctionName="OnViewLoaded" ObjectName="TWorkOrderCriticalPathVM" />
+    <Event Enabled="true" ObjectName="CustomerTransactionEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CustomerTransactionEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="CustomerTransactionEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 18.02.2022 11:32:27
+RuntimeHost.SetSettingItem("UnsubscribeAllEvents", false);
+codeEditor=null;
+
+function doRevise(cpds, cptable, workorderid, fnShowMessage)
+{
+	GetRowMaxDate = function(pr_row)
+	{
+	    cpdates = ["ActualDate", "UD_RvzPlan", "PlannedEndDate"];
+	    for(i = 0; i &lt; cpdates.Length; i++)
+	        if(!pr_row.IsNull(cpdates[i]))
+	        {
+	            return Convert.ToDateTime(pr_row[cpdates[i]]);
+	        }
+	    return null;
+	};
+	
+	GetParentModules = function(pr_row)
+	{
+	    modules = new List&lt;|string|&gt;();
+	    modulesstr = ["UD_Once3", "UD_Once2", "ErpModuleType"];
+	
+	    foreach(modulestr in modulesstr)
+	        if(!pr_row.IsNull(modulestr))
+	            modules.Add(pr_row[modulestr].ToString());
+	    
+	    return modules;
+	};
+	
+	GetMaxDateFromParent = function(pr_row)
+	{
+	    modules = GetParentModules(pr_row);
+	
+	    retdates = new List&lt;|DateTime|&gt;();
+	    modsstr = String.Join(",", modules.ToArray());
+	    mods = cptable.Select("ErpModuleNo in ("+modsstr+")");
+	    for ( ix = 0; ix &lt; mods.Length; ix++)
+	    {
+	        dt = GetRowMaxDate(mods[ix]);
+	        if(dt != null)
+	            retdates.Add(dt);
+	    }
+	    
+		dtmax = DateTime.MinValue;
+		foreach(dti in retdates)
+		{
+		    if (DateTime.Compare(dti, dtmax) == 1)
+		        dtmax = dti;
+		}
+	
+	    return dtmax;
+	};
+
+	calculateRow = function(pr_row)
+	{
+	    dtBaseDate = GetMaxDateFromParent(pr_row);
+	    shoulddt = cpds.GetStartEndDate(2, dtBaseDate, pr_row);
+	    if(dtBaseDate == DateTime.MinValue)
+	        return null;
+	    
+	    if(DateTime.Compare(dtBaseDate,shoulddt) != 0)
+	    {
+	        //fnShowMessage("Can\'t plan at " + dtBaseDate.ToString() + ", Plan date should be: " + shoulddt.ToString());
+	        return null;
+	    }
+		
+		dBaseDuration = cpds.GetDuration(pr_row);
+		
+		cachedMT = pr_row["ErpModuleType"];
+		pr_row.SetField&lt;|DateTime|&gt;("PlannedDate", DateTime.MinValue);
+	    pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", DateTime.MinValue);
+	    if(dBaseDuration == 0)
+	    {
+	        pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", dtBaseDate);
+		}else if(dBaseDuration &lt; 0)
+	    {
+	    	pr_row.SetField&lt;|int|&gt;("PlannedDuration", Math.Abs(dBaseDuration));
+	    	pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", DateTime.MinValue);
+	    	pr_row.SetField&lt;|DateTime|&gt;("PlannedDate", DateTime.MinValue);
+	    	pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", dtBaseDate);
+			result_date = pr_row["PlannedDate"];			
+			pr_row[cptable.Columns["PlannedDate"].Ordinal] = DBNull.Value;
+			pr_row.SetField&lt;|int|&gt;("PlannedDuration", dBaseDuration);    
+            pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", result_date);
+	    }else
+	    {
+	    	pr_row.SetField&lt;|DateTime|&gt;("PlannedEndDate", DateTime.MinValue);
+	    	pr_row.SetField&lt;|DateTime|&gt;("PlannedDate", dtBaseDate);
+			pr_row.SetField&lt;|int|&gt;("PlannedDuration", dBaseDuration);    
+			pr_row[cptable.Columns["PlannedDate"].Ordinal] = DBNull.Value;
+	    }
+		pr_row[cptable.Columns["ErpModuleType"].Ordinal] = cachedMT;
+	};
+	
+	setRowDate = function(pr_row)
+	{
+	    if(pr_row == null ||  Convert.ToInt32(pr_row["TranTypeId"]) == 46 || Convert.ToInt32(pr_row["TranTypeId"]) == 42 )
+	        return null;
+	
+	    modules = GetParentModules(pr_row);
+	    foreach(module in modules)
+	    {
+	        if(Convert.ToInt32(module) &gt; Convert.ToInt32(pr_row["ErpModuleNo"]))
+	            setRowDate(cptable.Select("ErpModuleNo="+module).FirstOrDefault&lt;|DataRow|&gt;());
+	    }
+
+	    calculateRow(pr_row);
+	};
+	
+	res = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "res", "SELECT ISNULL(AgreedDeliveryDate,0) shipdate, ISNULL(UD_POT,WorkOrderDate) wodate FROM MA_WorkOrder WHERE RecId = " + workorderid.ToString());
+	if(res != null &amp;&amp; res.Rows.Count &gt; 0)
+	{
+	    insDate = Convert.ToDateTime(res.Rows[0]["shipdate"]);
+	    orderDate = Convert.ToDateTime(res.Rows[0]["wodate"]);
+	    
+        
+        cpPOODateModule = cptable.Select("TranTypeId=46").FirstOrDefault&lt;|DataRow|&gt;();
+        cpInstDateModule = cptable.Select("TranTypeId=42").FirstOrDefault&lt;|DataRow|&gt;();
+
+        if(cpPOODateModule != null)
+            cpPOODateModule.SetField&lt;|DateTime|&gt;("PlannedEndDate", orderDate);
+
+        if(cpInstDateModule != null)
+        {
+	    	cpInstDateModule.SetField&lt;|int|&gt;("PlannedDuration", 3);
+	    	cpInstDateModule.SetField&lt;|DateTime|&gt;("PlannedEndDate", DateTime.MinValue);
+	    	cpInstDateModule.SetField&lt;|DateTime|&gt;("PlannedDate", DateTime.MinValue);
+	    	cpInstDateModule.SetField&lt;|DateTime|&gt;("PlannedEndDate", insDate);
+			result_date = cpInstDateModule["PlannedDate"]; 
+			cpInstDateModule[cptable.Columns["PlannedDate"].Ordinal] = DBNull.Value;
+			cpInstDateModule.SetField&lt;|DateTime|&gt;("PlannedEndDate", result_date);
+        }	    
+	}
+	
+	mTypedModules = cptable.Select("ErpModuleType &gt; 0", "ErpModuleNo");
+	
+	for(i = 0; i &lt; mTypedModules.Length; i++)
+	{
+	    cpr = mTypedModules[i];
+	    setRowDate(cpr);
+	}
+}
+
+function OnBeforeCommandExec(sender, cmd)
+{
+	if(cmd.CommandName != "TWorkOrderCPCalculationCommand" || cmd.CommandParam.VMTagObj == null)
+		return null;
+	
+	tbl = cmd.CommandParam.VMTagObj;
+	
+	for(i = 0; i &lt; tbl.Rows.Count; i++)
+	{
+		tbl.Rows[i][tbl.Columns["PlannedDate"].Ordinal] = DBNull.Value;
+		tbl.Rows[i][tbl.Columns["PlannedEndDate"].Ordinal] = DBNull.Value;
+		if(!tbl.Rows[i].IsNull("UD_Once1"))
+			tbl.Rows[i].SetField&lt;|Int16|&gt;("ErpModuleType", Convert.ToInt16(tbl.Rows[i]["UD_Once1"]));
+	}
+	
+	BaseObject.CommandList["TWorkOrderCPUpdateCommand"].Execute(null);
+}
+
+function doReviseWrapper(sender, ev)
+{
+	cpds = BaseObject.container.Resolve&lt;|CalculateTWorkOrderCPDurationService|&gt;();
+	doRevise(cpds, BaseObject.TWorkOrderCriticalPathTable, BaseObject.TWorkOrderId, BaseObject.SysManager.ActiveWindowManager.ShowMessage);
+	BaseObject.CommandList["TWorkOrderCPUpdateCommand"].Execute(null);
+	cpds.Dispose();
+}
+
+
+function BtnEventHandler(sender, ev)
+{
+			ctx = new ScriptContext();
+			ctx.SetItem("BaseObject", BaseObject );
+			
+			textRange = new TextRange(
+		        global:codeEditor.Document.ContentStart,
+		        global:codeEditor.Document.ContentEnd
+		    );
+			
+			Script.RunCode( textRange.Text.ToString(), ctx );
+};
+
+function OnViewLoaded(sender, ev)
+{
+	cbx = BaseObject.FindControl("cbxDeliveryDate");
+	/*
+	if(Convert.ToInt32(BaseObject.ActiveSession.User.RecId) == 1)
+	{
+		newGridRow = new RowDefinition();
+		newGridRow.Height = new GridLength(300);		
+		cbx.Parent.RowDefinitions.Add(newGridRow);
+			
+		execbtn = new Button();
+		execbtn.Name = "execCode";
+		execbtn.Content = "Execute";
+			
+		global:codeEditor = new RichTextBox();
+		global:codeEditor.Name = "txtCode";
+		global:codeEditor.HorizontalAlignment=HorizontalAlignment.Stretch;
+		global:codeEditor.VerticalAlignment=VerticalAlignment.Stretch;
+		global:codeEditor.Document.LineHeight = 1.0;
+		global:codeEditor.AcceptsTab = true; 
+		
+		Grid.SetRow(execbtn, 5);
+		Grid.SetColumn(execbtn, 0);
+		Grid.SetRow(global:codeEditor, 5);
+		Grid.SetColumn(global:codeEditor, 1);
+			
+		cbx.Parent.Children.Add(execbtn);
+		cbx.Parent.Children.Add(global:codeEditor);
+	
+	
+		execbtn.Click += BtnEventHandler;
+	}*/
+
+	cpRevBtn= new Button();
+	cpRevBtn.Name = "execCpRev";
+	cpRevBtn.Content = "Revize Et";
+	cpRevBtn.Width=120;
+    cpRevBtn.Height=32;
+    cpRevBtn.VerticalAlignment=VerticalAlignment.Center;
+	cpRevBtn.HorizontalAlignment = HorizontalAlignment.Center;
+	Grid.SetColumn(cpRevBtn, 2);
+	
+	cpRevBtn.Click += doReviseWrapper;
+	
+	cbx.Parent.Parent.Parent.Parent.Children[0].Children.Add(cpRevBtn);
+	
+	BaseObject.BeforeCommandExecution += OnBeforeCommandExec;
+}
+
+bHandlePost = false;
+bForceRet = false;
+function OnBeforePost(sender, ev)
+{	
+	if(global:bForceRet)
+		return null;
+		
+	global:bHandlePost=false;
+	isChanged = false;
+	if(BaseObject.CurrentRow.Row.HasVersion(DataRowVersion.Original) &amp;&amp; BaseObject.CurrentRow.Row["TranStatus", DataRowVersion.Original] != BaseObject.CurrentRow.Row["TranStatus", DataRowVersion.Current])
+		isChanged = true;
+		
+	if(!isChanged || BaseObject.CurrentRow.Row.IsNull("TranStatus") || Convert.ToInt32(BaseObject.CurrentRow.Row["TranStatus"]) != 4)
+		return null;
+		
+	global:bHandlePost = true;
+}
+
+function OnAfterSucceededPost(sender, ev)
+{
+	if(!global:bHandlePost || global:bForceRet)
+		return null;
+		
+	global:bForceRet = true;
+	global:bHandlePost = false;
+		
+    viewModel = BaseObject.Container.Resolve&lt;|IViewModel|&gt;("TWorkOrderCriticalPathVM");
+    viewModel.VMName = "TWorkOrderCriticalPathVM";
+    vmParam = new VMParam();
+    vmParam.TagStr = BaseObject.CurrentRow.Row["WorkOrderNo"].ToString();
+	viewModel.Init("TWorkOrderCriticalPath", vmParam);
+	viewModel.LoadCommands();
+	viewModel.f_showPostMessage = false;
+	cpds = BaseObject.Container.Resolve&lt;|CalculateTWorkOrderCPDurationService|&gt;();
+	doRevise(cpds, viewModel.TWorkOrderCriticalPathTable, viewModel.TWorkOrderId, BaseObject.ShowMessage);
+	viewModel.CommandList["TWorkOrderCPUpdateCommand"].Execute(null);
+	cpds.Dispose();
+	viewModel.Dispose();
+	
+	global:bForceRet = false;
+}</ScriptText>
+</ScriptDefinition>

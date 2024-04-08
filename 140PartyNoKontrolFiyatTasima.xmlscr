@@ -1,0 +1,215 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="140PartyNoKontrolFiyatTasima" Enabled="false" Priority="0" ScriptName="140PartyNoKontrolFiyatTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 29.01.2024 09:11:42	140PartyNoKontrolFiyatTasima
+
+function OnBeforePost(sender,ev)
+{
+	if(BaseObject == null 
+	    || BaseObject.CurrentRow == null
+	    || BaseObject.CurrentRow.Row == null
+		|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+		 )
+			return null;
+        partynoList = new List&lt;|string|&gt;();
+        depo_rec = 0;
+			
+		/*
+		31.01.2024 
+		12.02.2024 
+		*/
+		tarih_ = new DateTime(2024,01,31);
+		
+		date_ = Convert.ToDateTime(BaseObject.CurrentRow.Row["ReceiptDate"]);
+	
+		if(Convert.ToDateTime(date_) &lt;= Convert.ToDateTime(tarih_))
+			return null;
+        if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])&gt;100)
+            depo_rec = BaseObject.CurrentRow.Row["OutWarehouseId"].ToString();
+        else 
+            depo_rec = BaseObject.CurrentRow.Row["InWarehouseId"].ToString();
+//numune depo rec id yazılacak
+      
+           if (depo_rec.ToString() != "12")
+           {
+           	 return null;
+           }
+         
+// MessageBox.Show("asd");
+    if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 140	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 130	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 17	)
+        {
+                foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and InventoryId is not null")) 
+                        {
+                        	/*
+                          if (ri.RowState == DataRowState.Detached || ri.RowState == DataRowState.Deleted)
+							continue;
+						
+					      if (!BaseObject.CurrentRow.Row.HasVersion(DataRowVersion.Original))
+						    return null;
+						    */
+						        sb = new StringBuilder();
+                                sb.Clear();
+                                sb.AppendLine("select case when isnull(RI.ForexId,0)=0 then isnull(RI.UnitPrice,0)");
+                                sb.AppendLine("when isnull(RI.ForexId,0)!=0 then isnull(RI.ForexUnitPrice,0) end [price]");
+                                sb.AppendLine(",isnull(RI.ForexId,0) [forex_id]");
+                                sb.AppendLine("from IM_ReceiptItem RI with (nolock) where RI.InventoryId=\'"+ri["InventoryId"].ToString()+"\' and RI.PartyNo=\'"+ri["PartyNo"].ToString()+"\' and RI.ReceiptType in (1,16) ");
+                               // MessageBox.Show(sb.ToString());
+                                dt=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());
+                                if(dt != null &amp;&amp; dt.Rows.Count &gt; 0)
+									{
+                                        if(Convert.ToInt32(dt.Rows[0]["forex_id"]) == 0)
+                                        {
+                                            ri.SetField&lt;|decimal|&gt;("UnitPrice",Convert.ToDecimal(dt.Rows[0]["price"]));
+                                        }
+                                        else if(Convert.ToInt32(dt.Rows[0]["forex_id"]) != 0)
+                                        {
+                                            ri.SetField&lt;|int|&gt;("ForexId",Convert.ToInt32(dt.Rows[0]["forex_id"]));
+                                            ri.SetField&lt;|decimal|&gt;("ForexUnitPrice",Convert.ToDecimal(dt.Rows[0]["price"]));
+                                        }
+									}
+										if(ri.IsNull("PartyNo") || ri["PartyNo"].ToString() == "")
+					        {
+					            sender.ShowMessage("Party No Eksik Tanımlanamaz {..scr:140PartyNoKontrolFiyatTasima}");
+					            ev.Cancel = true;
+					            return null;
+					        }
+                             // Farklı PartyNo'ları kontrol et
+                                                if (partynoList.Contains(ri["PartyNo"].ToString()))
+                                                {
+                                                        sender.ShowMessage("Aynı PartyNo birden fazla satırda kullanılamaz {..scr:140PartyNoKontrolFiyatTasima}");
+                                                        ev.Cancel = true;
+                                                        return null;
+                                                }
+                                                else
+					        {
+					            partynoList.Add(ri["PartyNo"].ToString());
+					        }
+                                   /* Revize 07.02.24 */
+                                      query2 = "select isnull(sum(isnull(RI.Quantity,0)),0) [mik_] from IM_ReceiptItem RI with (nolock) where RI.PartyNo=\'"+ri["PartyNo"].ToString()+"\' and RI.InventoryId=\'"+ri["InventoryId"].ToString()+"\' and RI.ReceiptType in (1,16)";
+                                                  dt2=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2",query2.ToString());
+                                                // MessageBox.Show(query2.ToString());
+                                                  if(dt2 == null || dt2.Rows.Count &lt;= 0)
+                                                        return null;
+
+                                                  query3 = "select isnull(sum(isnull(RI.Quantity,0)),0) [mik_] from IM_ReceiptItem RI with (nolock) where RI.PartyNo=\'"+ri["PartyNo"].ToString()+"\' and RI.InventoryId=\'"+ri["InventoryId"].ToString()+"\' and RI.ReceiptType in (140,130,17)";
+                                               //  MessageBox.Show(query3.ToString());
+                                                  dt3=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt3",query3.ToString());
+                                                    if(dt3 == null || dt3.Rows.Count &lt;= 0)
+                                                        return null;  
+
+
+                                                   mal_alim_mik = Convert.ToDecimal(dt2.Rows[0]["mik_"]);
+                                                  cikis_mik = Convert.ToDecimal(dt3.Rows[0]["mik_"]);
+
+                                                // cikis_satir_top = cikis_mik + Convert.ToDecimal(ri["Quantity"]);
+                                   						 cikis_satir_top =  0m;
+                                                         old_quantity= 0m;
+                                                        if (ri["Quantity", DataRowVersion.Original] != DBNull.Value)
+                                                                old_quantity = Convert.ToDecimal(ri["Quantity", DataRowVersion.Original]);
+                                        		
+                                                         new_quantity = 0m;
+                                                        if (ri["Quantity"] != DBNull.Value)
+                                                                new_quantity = Convert.ToDecimal(ri["Quantity"]);
+												
+
+                                                  if(new_quantity == old_quantity)      
+                                                        cikis_satir_top = cikis_mik;
+                                                        
+                                                  else if(new_quantity != old_quantity)    
+                                                  {
+                                                    if(new_quantity &gt; old_quantity)  
+                                                    {
+                                                          cikis_satir_top = new_quantity;
+                                                          }
+                                                    else if (new_quantity &lt; old_quantity)  
+                                                    {
+                                                      cikis_satir_top =  old_quantity;
+                                                    }
+                                                  }
+
+
+			                                  //MessageBox.Show(cikis_satir_top.ToString());
+
+                                                 if(cikis_satir_top &gt; mal_alim_mik)
+                                                 {
+                                                        sender.ShowMessage(ri["PartyNo"].ToString()+" Numaralı Parti Numarasının Çıkışı Mal Alım Miktarından Daha Büyüktür Kayıt Yapılamadı {..scr:140PartyNoKontrolFiyatTasima}");
+                                                        ev.Cancel =true;
+                                                        return null;
+                                                 }  
+                                                  /* Revize 07.02.24 */
+
+
+                        
+					        /*
+					            query2 = "select count(RI.RecId) [syc_] from IM_ReceiptItem RI with (nolock) where RI.PartyNo=\'"+ri["PartyNo"].ToString()+"\' and RI.InventoryId=\'"+ri["InventoryId"].ToString()+"\' and RI.ReceiptType=\'"+BaseObject.CurrentRow.Row["ReceiptType"].ToString()+"\'";
+                                dt2=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2",query2.ToString());
+                                 //MessageBox.Show(query2.ToString());
+                                 if(dt2 != null || dt2.Rows.Count &gt; 0)
+									{
+                                        if(Convert.ToInt32(dt2.Rows[0]["syc_"])!=0)
+                                        {
+                                            sender.ShowMessage("Bu Parti Numarası Farklı Fişte Kullanılmış.");
+                                            ev.Cancel = true;
+                                            return null;
+                                        }
+                                    }
+                                    */
+                                
+                            
+                        }
+        }
+
+    if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 122	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 40	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 16	)
+        {
+                foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and InventoryId is not null")) 
+                        {
+                      
+                        	if(ri.IsNull("PartyNo") || ri["PartyNo"].ToString() == "")
+					        {
+					            sender.ShowMessage("Party No Eksik Tanımlanamaz {..scr:140PartyNoKontrolFiyatTasima}");
+					            ev.Cancel = true;
+					            return null;
+					        }
+
+                            /*
+                            if (partynoList.Contains(ri["PartyNo"].ToString()))
+                            {
+                                sender.ShowMessage("Aynı PartyNo birden fazla satırda kullanılamaz {..scr:140PartyNoKontrolFiyatTasima}");
+                                ev.Cancel = true;
+                                return null;
+                            }
+                            else
+					        {
+					            partynoList.Add(ri["PartyNo"].ToString());
+					        }
+					        */   
+                                sb = new StringBuilder();
+                                sb.Clear();
+                                sb.AppendLine("select case when isnull(RI.ForexId,0)=0 then isnull(RI.UnitPrice,0)");
+                                sb.AppendLine("when isnull(RI.ForexId,0)!=0 then isnull(RI.ForexUnitPrice,0) end [price]");
+                                sb.AppendLine(",isnull(RI.ForexId,0) [forex_id]");
+                                sb.AppendLine("from IM_ReceiptItem RI with (nolock) where RI.InventoryId=\'"+ri["InventoryId"].ToString()+"\' and RI.PartyNo=\'"+ri["PartyNo"].ToString()+"\' and RI.ReceiptType in (1,16) ");
+                                //MessageBox.Show(sb.ToString());
+                                dt=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());
+                                if(dt != null &amp;&amp; dt.Rows.Count &gt; 0)
+									{
+                                        if(Convert.ToInt32(dt.Rows[0]["forex_id"]) == 0)
+                                        {
+                                            ri.SetField&lt;|decimal|&gt;("UnitPrice",Convert.ToDecimal(dt.Rows[0]["price"]));
+                                        }
+                                        else if(Convert.ToInt32(dt.Rows[0]["forex_id"]) != 0)
+                                        {
+                                            ri.SetField&lt;|int|&gt;("ForexId",Convert.ToInt32(dt.Rows[0]["forex_id"]));
+                                            ri.SetField&lt;|decimal|&gt;("ForexUnitPrice",Convert.ToDecimal(dt.Rows[0]["price"]));
+                                        }
+									}
+                        }
+        }
+
+}
+</ScriptText>
+</ScriptDefinition>

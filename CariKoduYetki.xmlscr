@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Cari kodu yetki" Enabled="false" Priority="0" ScriptName="CariKoduYetki">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnColumnChanged(sender,ea)
+{
+	
+	if (BaseObject != null 
+	&amp;&amp; BaseObject.CurrentRow != null 
+	&amp;&amp; BaseObject.CurrentRow.Row != null 
+	&amp;&amp; !BaseObject.IsNewRecord
+	&amp;&amp; BaseObject.ActiveSession.User.RecId.ToString() != "2"
+	&amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") 
+	&amp;&amp; (Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 120 || Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 125) 
+	)
+	{
+		if(ea.Row.Table.TableName=="IM_Receipt" &amp;&amp; ea.Column.ColumnName == "CurrentAccountCode" &amp;&amp; BaseObject.Data.Tables["IM_ReceiptItem"].Rows.Count&gt;0 )		
+		{	
+			//BaseObject.ShowMessage("Aktif kullanici " + BaseObject.ActiveSession.User.RecId.ToString());
+			ea.Row.SetColumnError(ea.Column.ColumnName, "Kaydedilmiş irsaliyede cari kodu değiştiremezsiniz!Sistem Yöneticisine başvurun.{scr:CariKoduYetki}");
+			BaseObject.ErrorMessage ="Kaydedilmiş irsaliyede cari kodu değiştiremezsiniz!Sistem Yöneticisine başvurun.{scr:CariKoduYetki}";
+			BaseObject.ShowMessage(BaseObject.ErrorMessage, "Dikkat");
+			return null;			
+		}
+		
+	}	
+}</ScriptText>
+</ScriptDefinition>

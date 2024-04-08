@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FabrikaTaşıma" Enabled="true" Priority="0" ScriptName="FabrikaTaşıma">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 31.08.2023 09:30:26 FabrikaTaşıma
+function OnAfterSucceededPost(sender,eventArg)
+{
+ if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("RecId")
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+    || BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+    || Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 2)
+    return null;
+    
+	account_id = Convert.ToInt32(BaseObject.CurrentRow.Row["CurrentAccountId"]);
+	
+    	foreach(oriv in BaseObject.Data.Tables["IM_OrderReceiptItemVariant"].Select("OrderReceiptItemId is not null"))
+	    {
+            foreach(ori in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("RecId is not null and WorkOrderReceiptItemId is not null"))
+            {
+                if(oriv["OrderReceiptItemId"].ToString() == ori["RecId"].ToString())
+                    {
+                        sb = new StringBuilder();
+                        sb.Clear();
+                        sb.AppendLine("select top 1");
+                        sb.AppendLine("isnull(Y.[OperationCode],\'\') [OperationCode]");
+                        sb.AppendLine(",isnull(Y.[qua],0) [qua]");
+                        sb.AppendLine(",isnull(Y.[order],\'\') [order]");
+                        sb.AppendLine(",isnull(Y.[order_satır_rec],0) [order_satır_rec] from (select isnull(X.op,\'\') [OperationCode]		");
+                        sb.AppendLine(",X.qua																																				");
+                        sb.AppendLine(",X.[order]																																			");
+                        sb.AppendLine(",X.[rn]																																				");
+                        sb.AppendLine(",(select WOI.RecId from MA_WorkOrder WO with (nolock) 																								");
+                        sb.AppendLine("left join MA_WorkOrderItem WOI with (nolock) on WOI.WorkOrderId=WO.RecId																				");
+                        sb.AppendLine("where WO.WorkOrderNo=X.[order] and WOI.Quantity=X.qua and WOI.OperationCode=X.op																		");
+                        sb.AppendLine("and WOI.WorkOrderSubType=2  AND																														");
+                        sb.AppendLine("WOI.SubNo=1 and																																		");
+                        sb.AppendLine("((isnull(convert(varchar, WOI.InsertedAt, 104),\'\') = isnull(convert(varchar,X.ua, 104),\'\') 															");
+                        sb.AppendLine("and substring(isnull(convert(varchar, WOI.InsertedAt, 108),\'\'),0,6)  = substring(isnull(convert(varchar, X.ua, 108),\'\'),0,6) ) or					");
+                        sb.AppendLine("((isnull(convert(varchar, WOI.InsertedAt, 104),\'\') = isnull(convert(varchar,X.[ia], 104),\'\') 														");
+                        sb.AppendLine("and substring(isnull(convert(varchar, WOI.InsertedAt, 108),\'\'),0,6)  = substring(isnull(convert(varchar, X.[ia], 108),\'\'),0,6) )) or					");
+                        sb.AppendLine("(isnull(convert(varchar, WOI.UpdatedAt, 104),\'\') = isnull(convert(varchar,X.ua, 104),\'\') 															");
+                        sb.AppendLine("and substring(isnull(convert(varchar, WOI.UpdatedAt, 108),\'\'),0,6)  = substring(isnull(convert(varchar, X.ua, 108),\'\'),0,6) ) or						");
+                        sb.AppendLine("((isnull(convert(varchar, WOI.UpdatedAt, 104),\'\') = isnull(convert(varchar,X.[ia], 104),\'\') 															");
+                        sb.AppendLine("and substring(isnull(convert(varchar, WOI.UpdatedAt, 108),\'\'),0,6)  = substring(isnull(convert(varchar, X.[ia], 108),\'\'),0,6) )))					");
+                        sb.AppendLine(") [order_satır_rec]																																	");
+                        sb.AppendLine("from (																																				");
+                        sb.AppendLine("select (select VI.ItemCode from IM_ItemVariant IV with (nolock)																						");
+                        sb.AppendLine("left join IM_VariantItem VI with (nolock) on VI.RecId=IV.Variant1Id																					");
+                        sb.AppendLine("where IV.RecId=ORIV.InventoryVariantId) [op]																											");
+                        sb.AppendLine(",isnull(ORI.Quantity,0) [qua]																														");
+                        sb.AppendLine(",(select WO.WorkOrderNo from MA_WorkOrder WO with (nolock) 																							");
+                        sb.AppendLine("left join MA_WorkOrderItem WOI with (nolock) on WOI.WorkOrderId=WO.RecId 																			");
+                        sb.AppendLine("where WOI.RecId=ORI.WorkOrderReceiptItemId group by WO.WorkOrderNo) [order]																			");
+                        sb.AppendLine(",ORI.UpdatedAt [ua]																																	");
+                        sb.AppendLine(",ORI.InsertedAt [ia]																																	");
+                        sb.AppendLine(",ORR.ReceiptNo [rn]																																	");
+                        sb.AppendLine(" from IM_OrderReceipt ORR with (nolock)																												");
+                        sb.AppendLine("left join IM_OrderReceiptItem ORI with (nolock) on ORI.OrderReceiptId=ORR.RecId																		");
+                        sb.AppendLine("left join IM_OrderReceiptItemVariant ORIV with (nolock) on ORIV.OrderReceiptItemId=ORI.RecId															");
+                        sb.AppendLine("where ORR.ReceiptType=2 and ORI.WorkOrderReceiptItemId=\'"+ori["WorkOrderReceiptItemId"].ToString()+"\' ");
+                        sb.AppendLine("group by InventoryVariantId																															");
+                        sb.AppendLine(",ORI.Quantity																																		");
+                        sb.AppendLine(",ORI.WorkOrderReceiptItemId																															");
+                        sb.AppendLine(",ORI.UpdatedAt 																																		");
+                        sb.AppendLine(",ORR.ReceiptNo																																		");
+                        sb.AppendLine(",ORI.InsertedAt																																		");
+                        sb.AppendLine(")X																																					");
+                        sb.AppendLine("group by X.op,X.qua,X.[order],X.[rn],X.ua,X.ia																										");
+                        sb.AppendLine(")Y																																					");
+
+                        dt_up_query= UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "up_query",sb.ToString());
+
+                            if(dt_up_query == null || dt_up_query.Rows.Count &lt;=0)
+                                return null;
+                                order_ = dt_up_query.Rows[0]["order"].ToString();
+                                operationcode_ = dt_up_query.Rows[0]["OperationCode"].ToString();
+                                quantity_ = dt_up_query.Rows[0]["qua"].ToString();
+                                orderrowrec_ = dt_up_query.Rows[0]["order_satır_rec"].ToString();
+                        
+                        if(orderrowrec_.ToString().Trim() != "0")
+                            {
+                            update_query = " update MA_WorkOrderItem set ManufacturingFactoryId=\'"+account_id.ToString()+"\' where Quantity=\'"+quantity_.ToString().Replace(",",".")+"\'";
+                            update_query += " and WorkOrderId = (select top 1 isnull(WO.RecId,0) from MA_WorkOrder WO with (nolock) where WO.WorkOrderNo=\'"+order_.ToString()+"\')";
+                            update_query += " and OperationCode=\'"+operationcode_.ToString()+"\' and RecId=\'"+orderrowrec_.ToString()+"\'";
+                            update_query += " and WorkOrderSubType=2 and SubNo=1";
+                            }
+                        else 
+                            {
+                          update_query = " update MA_WorkOrderItem set ManufacturingFactoryId=\'"+account_id.ToString()+"\' where Quantity=\'"+quantity_.ToString().Replace(",",".")+"\'";
+                          update_query += " and WorkOrderId = (select top 1 isnull(WO.RecId,0) from MA_WorkOrder WO with (nolock) where WO.WorkOrderNo=\'"+order_.ToString()+"\')";
+                          update_query += " and OperationCode=\'"+operationcode_.ToString()+"\'";
+                          update_query += " and WorkOrderSubType=2 and SubNo=1";
+                            }
+
+                          //  MessageBox.Show(update_query.ToString());
+                          
+                          UtilityFunctions.SqlCustomNonQuery(BaseObject.Connection, BaseObject.Transaction, update_query);
+			
+                    }
+            }
+        }
+}
+
+
+</ScriptText>
+</ScriptDefinition>

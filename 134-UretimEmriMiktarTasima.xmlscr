@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="134-UretimEmriMiktarTasima" Enabled="true" Priority="0" ScriptName="134-UretimEmriMiktarTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 27.12.2023 10:02:53 134-UretimEmriMiktarTasima
+/*
+134-Fason (Alınan) Çıkış İrsaliyesinde Satırdaki Üretim Emrinin Miktarını Fiş Satırının Brüt Miktar Alanına Yazdırmaktadır.
+*/
+
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType"))
+		return null;
+	
+if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 134 
+/*&amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptSubType"]) == 2*/)
+            {
+                sb = new StringBuilder();
+                foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("WorkOrderReceiptItemId is not null"))
+                {	
+                    sb.Clear();
+                    sb.AppendLine(" select isnull(WO.Quantity,0) [qua] from MA_WorkOrder WO with (nolock) ");
+                    sb.AppendLine(" left join MA_WorkOrderItem WOI with (nolock) on WOI.WorkOrderId=WO.RecId ");
+                    sb.AppendLine(" where WO.WorkOrderType=3  and WOI.RecId=\'"+ri["WorkOrderReceiptItemId"].ToString()+"\' ");
+                   // MessageBox.Show(sb.ToString());
+                    dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+                        
+                    if(dt_sb == null || dt_sb.Rows.Count &lt;= 0)
+                        return null;
+                            
+                    mik_ = Convert.ToDecimal(dt_sb.Rows[0]["qua"]);
+                    ri.SetField&lt;|decimal|&gt;("GrossQuantity",Convert.ToDecimal(mik_));
+                }
+            }	
+}</ScriptText>
+</ScriptDefinition>

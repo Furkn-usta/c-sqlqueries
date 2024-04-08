@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Metre Kg Brim Dönüşüm" Enabled="true" Priority="0" ScriptName="BirimDonusumu">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>/*
+Talep Eden: Azad Erden
+Firma: Polar Parka
+Tarih: 26.10.2021
+
+Fiş satırında birim metre ise boya en gramaj ile kilogram hesabı yapılıp 2. fiyattan kilogram fiytı alınarak metre birim fiyatına ulaşılır.
+Birim kilogram ise aynı şekilde boya en gramaj ile metre hesabı yapılıp 2. fiyattan metre fiyatı alınarak kilogram birim fiyatına ulaşılır.
+*/
+
+
+function OnColumnChanged(sender, ev)
+{
+	if( BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || !BaseObject.IsNewRecord )
+		return null;
+	
+	if( ((BaseObject.Name!="InventoryReceiptEN" &amp;&amp; BaseObject.Name!="OrderReceiptEN") || (ev.Row.Table.TableName != "IM_ReceiptItem" &amp;&amp; ev.Row.Table.TableName != "IM_OrderReceiptItem") || ev.Row.IsNull("ReceiptType") || (ev.Row["ReceiptType"].ToString() != "1" &amp;&amp; ev.Row["ReceiptType"].ToString() != "3" &amp;&amp; ev.Row["ReceiptType"].ToString() != "11"   &amp;&amp; ev.Row["ReceiptType"].ToString() != "134"&amp;&amp; ev.Row["ReceiptType"].ToString() != "140"))
+		|| (ev.Column.ColumnName != "DyeWeight" &amp;&amp; ev.Column.ColumnName != "DyeWidth" &amp;&amp; ev.Column.ColumnName != "Quantity" &amp;&amp; ev.Column.ColumnName != "UnitPrice2"  &amp;&amp; ev.Column.ColumnName != "UnitCode"))
+         return null;
+         
+  	if(	ev.Row.IsNull("UnitCode") || (ev.Row["UnitCode"].ToString()!="MT" &amp;&amp; ev.Row["UnitCode"].ToString()!="KG") || ev.Row.IsNull("UnitPrice2") || ev.Row.IsNull("Quantity")
+  		|| ev.Row.IsNull("DyeWeight") || ev.Row.IsNull("DyeWidth")  )
+        return null;
+	
+	l_en=0m;
+	if(!ev.Row.IsNull("DyeWidth") &amp;&amp; Convert.ToDecimal(ev.Row["DyeWidth"])&gt;0m)
+		 l_en=Convert.ToDecimal(ev.Row["DyeWidth"]);
+		 
+	l_gram=0m;
+	if(!ev.Row.IsNull("DyeWeight") &amp;&amp; Convert.ToDecimal(ev.Row["DyeWeight"])&gt;0m)
+		 l_gram=Convert.ToDecimal(ev.Row["DyeWeight"]);
+		 
+	l_quantity=0m;
+	if(!ev.Row.IsNull("Quantity") &amp;&amp; Convert.ToDecimal(ev.Row["Quantity"])&gt;0m)
+		l_quantity=Convert.ToDecimal(ev.Row["Quantity"]);
+		
+	 l_unitprice=0m;
+	 if(!ev.Row.IsNull("UnitPrice2") &amp;&amp; Convert.ToDecimal(ev.Row["UnitPrice2"])&gt;0m)
+	 	l_unitprice=Convert.ToDecimal(ev.Row["UnitPrice2"]);
+		 	
+	if(ev.Row["UnitCode"].ToString() == "MT")
+	{
+		kg_result = l_quantity / (100000/(l_en*l_gram));
+	    price = kg_result * l_unitprice;
+	    unitpriceforkg = price / kg_result;
+	    
+	    ev.Row.SetField&lt;|decimal|&gt;("Quantity2", kg_result);
+	    ev.Row.SetField&lt;|decimal|&gt;("UnitPrice", unitpriceforkg);
+    }else
+    {
+    	l_en = l_en / 100;
+    	l_gram = l_gram / 1000;
+	    mt_result = l_quantity / l_gram / l_en;
+	    
+	    price = mt_result * l_unitprice;
+	    unitpriceformt = price / l_quantity;
+	    
+	    ev.Row.SetField&lt;|decimal|&gt;("Quantity2", mt_result);
+	    ev.Row.SetField&lt;|decimal|&gt;("UnitPrice", unitpriceformt);
+    }
+}</ScriptText>
+</ScriptDefinition>

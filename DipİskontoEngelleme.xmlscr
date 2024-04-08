@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DipİskontoEngelleme" Enabled="true" Priority="0" ScriptName="DipİskontoEngelleme">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" ObjectName="ContractEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="ContractEN" />
+    <Event Enabled="true" ObjectName="QuotationReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="QuotationReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>
+function OnBeforePost(sender, eventArg)
+{
+ if (BaseObject!=null &amp;&amp; BaseObject.CurrentRow != null &amp;&amp; BaseObject.CurrentRow.Row!= null  ){
+    if(BaseObject.Name=="InvoiceEN"){
+       foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select(" ReceiptType in (2,3,4,8,12,23,120,121,125,126,127,128,134,138,191,192,193,194) and ItemType=100")){
+                 BaseObject.ShowMessage("Dip İskonto Giremezsiniz1 ,{Dip İskonto Engelleme}");
+                 eventArg.Cancel=true;
+		         return null;
+       }
+    }
+    if(BaseObject.Name=="InventoryReceiptEN"){
+       foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("  ReceiptType in (2,3,4,8,12,23,120,121,123,125,126,127,134,138,192) and ItemType=100")){
+                 BaseObject.ShowMessage("Dip İskonto Giremezsiniz2 ,{Dip İskonto Engelleme}");
+                 eventArg.Cancel=true;
+		         return null;
+       }
+ 
+ 
+    }
+   if(BaseObject.Name=="OrderReceiptEN" &amp;&amp; (System.Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==2 )){
+       foreach(dr in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("ItemType=100")){
+                 BaseObject.ShowMessage("Dip İskonto Giremezsiniz3 ,{Dip İskonto Engelleme}");
+                 eventArg.Cancel=true;
+		         return null;
+   
+       }
+ 
+ 
+    }
+      if(BaseObject.Name=="ContractEN" &amp;&amp; (System.Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==2 )){
+       foreach(dr in BaseObject.Data.Tables["SM_ContractItem"].Select("ItemType=100")){
+                 BaseObject.ShowMessage("Dip İskonto Giremezsiniz4 ,{Dip İskonto Engelleme}");
+                 eventArg.Cancel=true;
+		         return null;
+   
+       }
+       }
+      if(BaseObject.Name=="QuotationReceiptEN" &amp;&amp; (System.Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==2 )){
+       foreach(dr in BaseObject.Data.Tables["IM_QuotationReceiptItem"].Select("ItemType=100")){
+                 BaseObject.ShowMessage("Dip İskonto Giremezsiniz5 ,{Dip İskonto Engelleme}");
+                 eventArg.Cancel=true;
+		         return null;
+   
+       }
+ 
+ 
+    }
+}
+}  </ScriptText>
+</ScriptDefinition>

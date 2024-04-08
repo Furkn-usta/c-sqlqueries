@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BelgeNoOlusturma" Enabled="true" Priority="0" ScriptName="BelgeNoOlusturma">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 17.04.2023 15:10:39
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null  || BaseObject.CurrentRow.Row.IsNull("ReceiptType") || BaseObject.CurrentRow.Row["ReceiptType"].ToString()!="140" )
+		return null;
+
+	gun = DateTime.Now.Day.ToString();
+	ay = DateTime.Now.Month.ToString();
+	yil=DateTime.Now.Year.ToString(); 
+	fis=BaseObject.CurrentRow.Row["ReceiptNo"].ToString();
+
+	BaseObject.CurrentRow.Row.SetField&lt;|String|&gt;("DocumentNo",yil+ay+gun+fis);
+	
+	
+}
+</ScriptText>
+</ScriptDefinition>

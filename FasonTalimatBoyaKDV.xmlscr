@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FasonTalimatBoyaKDV" Enabled="true" Priority="0" ScriptName="FasonTalimatBoyaKDV">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 20.02.2023 11:36:44
+function OnBeforePost(sender,ev){
+	if(BaseObject==null 
+	||BaseObject.CurrentRow==null
+	||BaseObject.CurrentRow.Row==null
+	||BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	||BaseObject.CurrentRow.Row.IsNull("ReceiptSubType"))
+	return null;
+	
+if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])==3)
+{
+
+ foreach(dr in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("RecId is not null"))
+ {
+ if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==3 &amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptSubType"])==2)
+ 	dr.SetField&lt;|int|&gt;("VatRate",18);  
+ 
+if(!(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==3 &amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptSubType"])==2))
+	dr.SetField&lt;|int|&gt;("VatRate",8); 
+
+}
+}
+}
+
+
+</ScriptText>
+</ScriptDefinition>

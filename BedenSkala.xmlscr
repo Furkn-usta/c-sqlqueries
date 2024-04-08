@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BedenSkalaGetirme" Enabled="true" Priority="0" ScriptName="BedenSkalaGetirme">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 22.02.2024 16:52:38 BedenSkalaGetirme
+function OnBeforePost(sender,ev)
+{
+	if(BaseObject == null
+	||BaseObject.CurrentRow == null
+	||BaseObject.CurrentRow.Row == null
+	||!BaseObject.CurrentRow.Row.IsNull("AccessCode")	
+	)
+		return null;
+		sb = new StringBuilder();
+            sb.Clear();
+            sb.AppendLine(" select reverse(substring(reverse(X.[b_skala]),2,len(X.[b_skala]))) [beden_skala] from (");
+            sb.AppendLine(" select isnull(VI.ItemName,\'\') + \'-\' from IM_ItemAssortment IA with (nolock)");
+            sb.AppendLine("left join IM_ItemAssortmentItem IAI with (nolock) on IAI.LotId=IA.RecId");
+            sb.AppendLine("left join IM_ItemVariant IV with (nolock) on IV.RecId=IAI.InventoryVariantId");
+            sb.AppendLine("left join IM_VariantItem VI with (nolock) on VI.RecId=IV.Variant2Id");
+            sb.AppendLine("where IA.InventoryId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\'");
+            sb.AppendLine("order by VI.RecId asc for xml path (\'\') )X([b_skala])");
+            MessageBox.Show(sb.ToString());
+			dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+			if(dt_sb != null &amp;&amp; dt_sb.Rows.Count &gt; 0)
+            {
+					beden_skala_ = dt_sb.Rows[0]["beden_skala"].ToString();
+					BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("UD_BedenSeti",beden_skala_.ToString());
+			}
+			
+}</ScriptText>
+</ScriptDefinition>

@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DovizKurKontrol" Enabled="true" Priority="0" ScriptName="DovizKurKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 28.03.2023 12:30:16
+function OnBeforePost(sender, ev)
+{
+
+	if(BaseObject == null || BaseObject.CurrentRow == null ||BaseObject.CurrentRow.Row == null )
+		return null;
+		if(!BaseObject.CurrentRow.Row.IsNull("ForexId"))
+	  {		
+	  if(Convert.ToInt32(BaseObject.CurrentRow.Row["IsForexEInvoice"])==0)
+		{	BaseObject.ShowMessage("Lütfen Dövizli Seçeneğini Seçiniz !!!{scr:DövizKurKontrol}");
+			ev.Cancel=true;
+			return null;
+			
+		}  
+	}
+	 baslik_kur=Convert.ToDecimal(BaseObject.CurrentRow.Row["ForexRate"]);
+	 		foreach( ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null"))
+	{		
+	 		if(baslik_kur!=Convert.ToDecimal(ri["ForexRate"]))
+	 	{
+	 		BaseObject.ShowMessage("Seçilen Doviz Kuru Satırdaki Döviz ile Eşleşmedi !!! {scr:DövizKurKontrol");
+	 		ev.Cancel=true;
+			return null;
+	 	}	
+	}	
+}</ScriptText>
+</ScriptDefinition>

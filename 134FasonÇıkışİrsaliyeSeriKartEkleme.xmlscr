@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="134FasonÇıkışİrsaliyeSeriKartEkleme" Enabled="true" Priority="0" ScriptName="134FasonÇıkışİrsaliyeSeriKartEkleme">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 4.05.2023 09:40:20
+/*
+10 üretim fişinde bulunan Seri Kartlarını 134 çıkış irsaliyesinde sağ tıktan giriş irsaliyelerini aktarınca 134 tipinde Seri kartlarını ekler. 
+*/
+function OnAfterSucceededPost (sender,eventArg){
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("UD_Check")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType") 
+	|| BaseObject.CurrentRow.Row["UD_Check"].ToString()=="True"
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 134)
+		return null;
+	
+		foreach (dri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("ExplanationCode is not null and InventoryId is not null "))
+		
+			{
+			
+					query = " select SC.RecId [rec] from IM_SerialTransaction ST with (nolock)										  ";
+					query +="  left join IM_SerialCard SC with (nolock) on SC.RecId =ST.SerialCardId						  ";
+					query +="  left join IM_ReceiptItem IRI with (nolock) on IRI.RecId=ST.ReceiptItemId						  ";
+					query +="  left join IM_Receipt R with (nolock) on R.RecId=IRI.InventoryReceiptId				 ";
+					query +="  where R.ReceiptType=10 and IRI.InventoryId=\'"+dri["InventoryId"].ToString()+"\' and IRI.RecId=\'"+dri["ExplanationCode"].ToString()+"\' ";
+					dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);
+					
+					if(dt==null || dt.Rows.Count&lt;0)
+						 return null;
+						 //	MessageBox.Show(query.ToString());
+					for(l_=0; l_&lt; dt.Rows.Count; l_++)
+					{
+					sql_into = "insert into IM_SerialTransaction (SerialCardId,TransactionType,ReceiptItemId,Quantity,UnitPrice) values ("+Convert.ToInt32(dt.Rows[l_]["rec"])+","+Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])+","+dri["RecId"]+",\'"+dri["Quantity"].ToString().Replace(",",".")+"\',\'"+dri["UnitPrice"].ToString().Replace(",",".")+"\')";
+					UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, null, sql_into);
+				
+					}
+			
+			}
+				upd_chck = "update IM_Receipt set UD_Check=1 where RecId="+BaseObject.CurrentRow.Row["RecId"]+" and ReceiptType="+Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]);
+			//	MessageBox.Show(upd_chck.ToString());
+			UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, null, upd_chck);
+						     
+}
+/*
+	sql_into = "insert into IM_SerialTransaction (SerialCardId,TransactionType,ReceiptItemId,Quantity,UnitPrice) values ("+Convert.ToInt32(dt.Rows[l_]["rec"])+","+Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])+","+dri["RecId"]+",\'"+dri["Quantity"].ToString().Replace(",",".")+"\',\'"+dri["UnitPrice"].ToString().Replace(",",".")+"\')";
+				UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, null, sql_into);
+		
+*/</ScriptText>
+</ScriptDefinition>

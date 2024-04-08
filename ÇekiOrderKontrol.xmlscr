@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiOrderKontrol" Enabled="true" Priority="0" ScriptName="ÇekiOrderKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 10.10.2023 11:48:51 ÇekiOrderKontrol
+
+function OnBeforePost(sender, ev)
+{
+    if (BaseObject == null 
+    || BaseObject.CurrentRow == null
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("WorkOrderId"))
+        return null;
+
+    query = "select Count(PL.WorkOrderId) [cnt] from IM_PackagingList PL with (nolock) where PL.WorkOrderId=\'"+BaseObject.CurrentRow.Row["WorkOrderId"]+"\'";
+    dt = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "dt", query);
+	
+    	
+	if(dt == null || dt.Rows.Count &lt;= 0)
+		return null; 
+	
+    count_  = Convert.ToInt32(dt.Rows[0]["cnt"]);
+    if(count_ &gt;= 1)
+        {
+             sender.ShowMessage("Bu Orderin Çekisi Bulunmaktadır. Kayıt Yapılamadı ..scr{ÇekiOrderKontrol}");
+                ev.Cancel=true;
+                return null;
+        }
+}</ScriptText>
+</ScriptDefinition>

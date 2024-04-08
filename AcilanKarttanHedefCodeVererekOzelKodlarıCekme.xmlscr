@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ModelDikimKopyalama" Enabled="true" Priority="0" ScriptName="ModelDikimKopyalama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 17.02.2020 15:55:46
+function OnColumnChanged(sender, e){   	
+    if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("InventoryType")  &amp;&amp; BaseObject.CurrentRow.Row["InventoryType"].ToString()=="100" &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Detached  ) {
+	   if(e.Row.Table.TableName == "IM_Item" &amp;&amp; e.Column.ColumnName == "UD_DikTalKod" &amp;&amp; (!e.Row.IsNull("UD_DikTalKod") &amp;&amp; e.Row["UD_DikTalKod"].ToString()!=""))
+	   { 
+	    str="select * from IM_Item where InventoryCode=\'"+e.Row["UD_DikTalKod"].ToString()+"\'";
+	    dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",str);	
+	    if(dt!=null &amp;&amp; dt.Rows.Count&gt;0){
+	            for(i=1;i&lt;=85;i++){
+		         if(i&lt;10 &amp;&amp; !dt.Rows[0].IsNull("UD_Dik0"+i.ToString()) &amp;&amp; Convert.ToInt16(dt.Rows[0]["UD_Dik0"+i.ToString()])&gt;0){
+		           e.Row.SetField&lt;|int|&gt;("UD_Dik0"+i.ToString(),Convert.ToInt32(dt.Rows[0]["UD_Dik0"+i.ToString()]));
+		         }
+		         else if(i&lt;10 &amp;&amp; (dt.Rows[0].IsNull("UD_Dik0"+i.ToString()) || Convert.ToInt16(dt.Rows[0]["UD_Dik0"+i.ToString()])==0)){
+		           e.Row.SetField&lt;|int|&gt;("UD_Dik0"+i.ToString(),(int)0);
+		         }
+		         else if(i&gt;=10 &amp;&amp; i&lt;26 &amp;&amp; !dt.Rows[0].IsNull("UD_Dik"+i.ToString()) &amp;&amp; Convert.ToInt16(dt.Rows[0]["UD_Dik"+i.ToString()])&gt;0){
+		           e.Row.SetField&lt;|int|&gt;("UD_Dik"+i.ToString(),Convert.ToInt32(dt.Rows[0]["UD_Dik"+i.ToString()]));
+		         }
+		         else if(i&gt;=10 &amp;&amp; i&lt;26 &amp;&amp; (dt.Rows[0].IsNull("UD_Dik"+i.ToString()) || Convert.ToInt16(dt.Rows[0]["UD_Dik"+i.ToString()])==0)){
+		           e.Row.SetField&lt;|int|&gt;("UD_Dik"+i.ToString(),(int)0);
+		         }
+		         else if(i&gt;25 &amp;&amp; i &lt; 86  &amp;&amp; !dt.Rows[0].IsNull("UD_Dik"+i.ToString()) &amp;&amp; dt.Rows[0]["UD_Dik"+i.ToString()].ToString()!=""){
+		           e.Row.SetField&lt;|String|&gt;("UD_Dik"+i.ToString(),dt.Rows[0]["UD_Dik"+i.ToString()].ToString());
+		         }
+		         else if(i&gt;25 &amp;&amp; i &lt; 86  &amp;&amp; (dt.Rows[0].IsNull("UD_Dik"+i.ToString()) || dt.Rows[0]["UD_Dik"+i.ToString()].ToString()=="")){
+		           e.Row.SetField&lt;|String|&gt;("UD_Dik"+i.ToString(),"");
+		         }
+		        }
+		        if(System.String.IsNullOrWhiteSpace(dt.Rows[0]["UD_DikimTalimatıKod"].ToString()) || System.String.IsNullOrEmpty(dt.Rows[0]["UD_DikimTalimatıKod"].ToString()))
+		        	e.RowSetfield&lt;|String|&gt;("UD_DikimTalimatıKod",dt.Rows[0]["UD_DikimTalimatıKod"].ToString());
+		        
+	         }
+ 
+		}
+		
+		}
+}
+</ScriptText>
+</ScriptDefinition>

@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FasonAlınanBoyaOrderMiktarAtama" Enabled="true" Priority="0" ScriptName="FasonAlınanBoyaOrderMiktarAtama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 14.02.2024 16:37:40 FasonAlınanBoyaOrderMiktarAtama
+
+function OnAfterSucceededPost(sender, ev)
+{
+	if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType"))
+		return null;
+	
+if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 11 &amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptSubType"]) == 2)
+            {
+                sb = new StringBuilder();
+                foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("WorkOrderReceiptItemId is not null"))
+                {	
+                    sb.Clear();
+                    sb.AppendLine(" select isnull(sum(isnull(RI.Quantity,0)),0) [total_miktar] ,isnull(WO.WorkOrderNo,\'\') WorkOrderNo,isnull(WO.RecId,0)RecId from IM_Receipt R with (nolock)");
+                    sb.AppendLine("  left join IM_ReceiptItem RI on RI.InventoryReceiptId=R.RecId");
+                    sb.AppendLine(" left join MA_WorkOrderItem WOI on WOI.RecId=RI.WorkOrderReceiptItemId");
+                    sb.AppendLine("  left join MA_WorkOrder WO on WO.RecId=WOI.WorkOrderId ");
+                    sb.AppendLine(" where  R.ReceiptType=11 and R.ReceiptSubType=2 and RI.WorkOrderReceiptItemId=\'"+ri["WorkOrderReceiptItemId"].ToString()+"\' ");
+                    sb.AppendLine(" group by WO.WorkOrderNo,WO.RecId");
+                    MessageBox.Show(sb.ToString());
+                    dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+                    if(dt_sb == null || dt_sb.Rows.Count &lt;= 0)
+                        return null;
+                    mik_ = Convert.ToDecimal(dt_sb.Rows[0]["total_miktar"]);
+                    rec_ = dt_sb.Rows[0]["RecId"].ToString();
+                    update_sorgu ="update MA_WorkOrder set UD_OzelMiktar=\'"+mik_.ToString().Replace(",",".")+"\' where RecId=\'"+rec_.ToString()+"\'";
+                    MessageBox.Show(update_sorgu.ToString());
+                    UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,update_sorgu.ToString());
+                }
+            }
+     if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 120)
+            {
+                sb = new StringBuilder();
+                foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("WorkOrderReceiptItemId is not null"))
+                {	
+                    sb.Clear();
+                    sb.AppendLine(" select isnull(sum(isnull(RI.Quantity,0)),0) [total_miktar] ,isnull(WO.WorkOrderNo,\'\') WorkOrderNo,isnull(WO.RecId,0)RecId,isnull(WO.UD_OzelMiktar,0) [ud_alan] from IM_Receipt R with (nolock)");
+                    sb.AppendLine("  left join IM_ReceiptItem RI on RI.InventoryReceiptId=R.RecId");
+                    sb.AppendLine(" left join MA_WorkOrderItem WOI on WOI.RecId=RI.WorkOrderReceiptItemId");
+                    sb.AppendLine("  left join MA_WorkOrder WO on WO.RecId=WOI.WorkOrderId ");
+                    sb.AppendLine(" where  R.ReceiptType=120 and RI.WorkOrderReceiptItemId=\'"+ri["WorkOrderReceiptItemId"].ToString()+"\' ");
+                    sb.AppendLine(" group by WO.WorkOrderNo,WO.RecId,WO.UD_OzelMiktar");
+                   // MessageBox.Show(sb.ToString());
+                    dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+                    if(dt_sb == null || dt_sb.Rows.Count &lt;= 0)
+                        return null;
+                    mik_ = Convert.ToDecimal(dt_sb.Rows[0]["total_miktar"]);
+                    ud_alan_ = Convert.ToDecimal(dt_sb.Rows[0]["ud_alan"]);
+                    rec_ = dt_sb.Rows[0]["RecId"].ToString();
+                    if(ud_alan_ == mik_)
+                    {
+                        update_sorgu ="update MA_WorkOrder set IsClosed=1 where RecId=\'"+rec_.ToString()+"\'";
+                   // MessageBox.Show(update_sorgu.ToString());
+                    UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,update_sorgu.ToString());        
+                    }
+                    
+                }
+            }	
+}</ScriptText>
+</ScriptDefinition>

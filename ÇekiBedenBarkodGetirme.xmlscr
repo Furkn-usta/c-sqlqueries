@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiBedenBarkodGetirme" Enabled="true" Priority="0" ScriptName="ÇekiBedenBarkodGetirme">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 10.01.2023 16:10:26
+/*
+Çeki listesinde mamülün bedenine ait olan barkodun çeki satırına aktarılmasını sağlar.
+*/
+function OnBeforePost (sender, ev)
+{
+	if( BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null )
+		return null;
+
+				query = ("DECLARE @string VARCHAR(MAX)");
+				query += (" SET @string = (select isnull(WO.SText,\'\') from MA_WorkOrder WO with (nolock) left join IM_Item I with (nolock) on I.RecId=WO.InventoryId where WO.RecId=\'"+BaseObject.CurrentRow.Row["WorkOrderId"].ToString()+"\' and I.RecId=\'"+BaseObject.CurrentRow.Row["InventoryId"].ToString()+"\')");
+				query += (" SET @string = REPLACE(@string, \'#@#\', CHAR(13) + CHAR(10))");
+				query += (" CREATE TABLE #tempTable (RowNumber INT, Value VARCHAR(MAX))");
+				query += (" DECLARE @startIndex INT");
+				query += (" DECLARE @endIndex INT");
+				query += (" DECLARE @value VARCHAR(MAX)");
+				query += (" DECLARE @rowNumber INT");
+				query += (" SET @startIndex = 1");
+				query += (" SET @endIndex = CHARINDEX(CHAR(13) + CHAR(10), @string)");
+				query += (" SET @rowNumber = 1");
+				query += (" WHILE @endIndex &gt; 0");
+				query += (" BEGIN");
+				query += (" SET @value = SUBSTRING(@string, @startIndex, @endIndex - @startIndex)");
+				query += (" INSERT INTO #tempTable (RowNumber, Value) VALUES (@rowNumber, @value)");
+				query += (" SET @startIndex = @endIndex + 2");
+				query += (" SET @endIndex = CHARINDEX(CHAR(13) + CHAR(10), @string, @startIndex)");
+				query += (" SET @rowNumber = @rowNumber + 1");
+				query += (" END");
+				query += (" SET @value = SUBSTRING(@string, @startIndex, LEN(@string) - @startIndex + 1)");
+				query += (" INSERT INTO #tempTable (RowNumber, Value) VALUES (@rowNumber, @value)");
+				query += (" SELECT RowNumber, Value FROM #tempTable");
+				//l_sb.AppendLine(" DROP TABLE #tempTable");
+			
+			//	MessageBox.Show(query.ToString());
+				dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);
+				
+					if(dt==null || dt.Rows.Count&lt;=0)
+						return null;
+					
+
+         foreach(dr in BaseObject.Data.Tables["IM_PackagingListItemVariant"].Select("SubNo is not null"))
+			{
+					for(l_rows=0; l_rows &lt; dt.Rows.Count; l_rows++)
+						{
+						
+							value_ = dt.Rows[l_rows]["Value"].ToString();
+							row_num_ = Convert.ToInt32(dt.Rows[l_rows]["RowNumber"]);
+								/*
+							MessageBox.Show(value_.ToString());
+							MessageBox.Show(row_num_.ToString());
+							*/
+							
+							
+								
+							if(row_num_.ToString() == dr["SubNo"].ToString())
+							{
+								//MessageBox.Show(dt.Rows[Convert.ToInt32(row_num_)-1]["Value"].ToString());
+									bdn_ = dt.Rows[Convert.ToInt32(row_num_)-1]["Value"].ToString();
+								
+							query2 = "select IB.Barcode [barc],VI.ItemCode [renk],VI2.ItemCode [beden] from IM_ItemBarcode IB with (nolock) ";
+							query2 += "left join IM_ItemVariant IV with (nolock)  on IV.RecId=IB.InventoryVariantId ";
+							query2 += "left join IM_VariantItem VI with (nolock)  on VI.RecId=IV.Variant1Id ";
+							query2 += "left join IM_VariantItem VI2 with (nolock)  on VI2.RecId=IV.Variant2Id ";
+							query2 += "where VI2.ItemCode=\'"+bdn_.ToString()+"\' and IB.InventoryId in (select RecId from IM_Item II with (nolock)  where II.StyleCardId in (select I.RecId from IM_Item I  with (nolock) left join MA_WorkOrder WO  with (nolock) on WO.InventoryId=I.RecId where WO.RecId=\'"+BaseObject.CurrentRow.Row["WorkOrderId"].ToString()+"\'))";
+
+								dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2",query2);
+				
+									if(dt2==null || dt2.Rows.Count&lt;=0)
+										return null;
+									
+									barcode_ = dt2.Rows[0]["barc"].ToString();
+								//	MessageBox.Show(barcode_.ToString());
+										dr.SetField&lt;|string|&gt;("UD_Explanation",barcode_.ToString());
+								
+							}
+						}	
+		
+	}
+}
+
+		function OnAfterSucceededPost(sender, ev)
+			{
+					if( BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null )
+						return null;
+						
+						
+					foreach(dr in BaseObject.Data.Tables["IM_PackagingListItem"].Select("RecId is not null"))
+					{	
+						query = "select isnull(UD_Explanation,\'-\') [exp] from IM_PackagingListItemVariant where PackagingListItemId=\'"+dr["RecId"].ToString()+"\'";
+						dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);
+				
+							if(dt==null || dt.Rows.Count&lt;=0)
+								return null;
+					//	MessageBox.Show(query);
+						exp_ = dt.Rows[0]["exp"].ToString();
+						
+			updateSQL="update IM_PackagingListItem set UD_BedenBarkod=\'"+exp_.ToString()+"\' where RecId=\'"+dr["RecId"].ToString()+"\'";
+			//	MessageBox.Show(updateSQL);
+			UtilityFunctions.SqlCustomNonQuery(BaseObject.Connection, BaseObject.Transaction, updateSQL);
+						
+					}
+			}</ScriptText>
+</ScriptDefinition>

@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÖnMaliyetKurKontrol2" Enabled="true" Priority="0" ScriptName="ÖnMaliyetKurKotrol2">
+  <Events>
+    <Event Enabled="true" ObjectName="InitialCostEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InitialCostEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="System generated" EntryDate="2022-08-03T22:40:28.1777815+03:00">
+      <Change>System default version</Change>
+    </History>
+  </Histories>
+  <ScriptText>	     function OnBeforePost(sender ,eventArg)
+{
+	    if(BaseObject != null || BaseObject.CurrentRow != null || BaseObject.CurrentRow.Row!=null  || BaseObject.CurrentRow.Row.IsNull("MA_InitialCost") || BaseObject.CurrentRow.Row["MA_InitialCost"].ToString()=="")
+	     {
+	      if((BaseObject.CurrentRow.Row.IsNull("ForexRate")) &amp;&amp; (BaseObject.CurrentRow.Row.IsNull("Forex2Rate")))
+ {
+ 	sender.ShowMessage("Kur Eksik Tanımlanamaz!");
+    eventArg.Cancel=true;
+    return null;  
+ }
+ else
+ {
+ foreach(dr in BaseObject.Data.Tables["MA_InitialCostItem"].Select("RecId is not null"))
+ {
+ sender.ShowMessage("foreach girdi");
+			if(dr.RowState!=DataRowState.Deleted &amp;&amp; dr.RowState!=DataRowState.Detached)
+			{
+			sender.ShowMessage("1.if girdi");
+				ustDoviz=BaseObject.CurrentRow.Row["ForexRate"];
+				satirDoviz=dr["ForexRate"];
+				sender.ShowMessage("satirDoviz:"+satirDoviz);
+				sender.ShowMessage("ustDoviz:"+ustDoviz);
+				
+				if(ustDoviz != satirDoviz)
+				{
+					BaseObject.ShowMessage("Üst döviz ile satır dövizleri aynı değil. Lütfen kontrol ediniz.   src:{Döviz Satır Kontrol}");
+					eventArg.Cancel=true;
+			  	    return null;
+		        }
+		    }
+			
+	 	}
+ 
+ }
+ }
+ }
+ 
+ /*
+	      foreach(loop in BaseObject.Data.Tables["MA_InitialCost"].Select("RecId is not null"))
+	{
+		y1="SELECT ForexId from MA_InitialCostItem  WHERE InitialCostId=" + loop["RecId"].ToString();
+		y2="SELECT ForexRate from MA_InitialCostItem  WHERE InitialCostId=" + loop["RecId"].ToString();
+		
+		x1=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "x1",y1); 
+		x2=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "x2",y2); 
+		
+		
+			sender.ShowMessage("BEGIN!!");
+			*/
+			
+			
+			
+			
+			
+			/*
+			if(x1("ForexId")==("ForexId") &amp;&amp; x1("ForexRate")&gt;=("ForexRate") ||( x1("ForexId")==("Forex2Id") &amp;&amp; x1("ForexRate")&gt;=("Forex2Rate")))
+			{
+				sender.ShowMessage("x1 düzelt");
+			}
+			else sender.ShowMessage("x1 içinden çıktım");
+		
+			if(x2("ForexId")==("ForexId") &amp;&amp; x2("ForexRate")&gt;=("ForexRate") ||( x2("ForexId")==("Forex2Id") &amp;&amp; x2("ForexRate")&gt;=("Forex2Rate")))
+			{
+			sender.ShowMessage("x2 düzelt");
+			}
+			else sender.ShowMessage("x2 içinden çıktım");
+			*/
+		</ScriptText>
+</ScriptDefinition>

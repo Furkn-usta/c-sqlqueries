@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BoyaTalimatAdetYakaMiktarHesaplama" Enabled="true" Priority="0" ScriptName="BoyaTalimatAdetYakaMiktarHesaplama">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 5.02.2024 12:38:24 BoyaTalimatAdetYakaMiktarHesaplama
+function OnBeforePost(sender, ev)
+{
+if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")	
+	)
+		return null;
+		if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 3)
+		{
+		foreach(ori in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("InventoryId is not null and UD_2Birim is not null") )
+				{
+		            query = "select isnull((select MUNIT.UnitCode from MD_UnitSetItem MUNIT with (nolock) where MUNIT.RecId = (select min(IUNIT.UnitItemId) from ";
+		            query += " IM_ItemUnitItemSize IUNIT with (nolock) where IUNIT.InventoryId=\'"+ori["InventoryId"].ToString()+"\' and IUNIT.IsMainUnit=1)),\'\') [Birim]";
+		            dt = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "dt", query);
+				    
+					if(dt != null &amp;&amp; dt.Rows.Count &gt; 0)
+					{
+							birim_ = dt.Rows[0]["Birim"].ToString().Trim();
+							 birim_2_ = ori["UD_2Birim"].ToString().Trim();
+			                //MessageBox.Show(birim_.ToString());
+			                //MessageBox.Show(birim_2_.ToString());
+			                
+						if((birim_.ToString().ToUpper() == "KG" || birim_.ToString().ToUpper() == "MT"/**/) &amp;&amp; birim_2_.ToString().ToUpper()=="ADET")
+						{
+			                yaka_adet = 0;
+			                if(Convert.ToInt32(ori["UD_YakaMiktar"])!=0 || ori.IsNull("UD_YakaMiktar"))
+			                {
+			                	yaka_adet = Convert.ToInt32(ori["UD_YakaMiktar"]);
+			                }
+			                miktar_ = 0;
+			                
+			                if(Convert.ToInt32(ori["Quantity"])!=0 || ori.IsNull("Quantity"))
+			                {
+			                	miktar_ = Convert.ToInt32(ori["Quantity"]);
+			                }
+			                top_ = yaka_adet * miktar_ ; 
+			                /*
+			                MessageBox.Show(yaka_adet.ToString());
+			                MessageBox.Show(miktar_.ToString());	                 
+							MessageBox.Show(top_.ToString());	      
+							*/                        
+			                ori.SetField&lt;|decimal|&gt;("Quantity2",Convert.ToDecimal(top_));
+			             }
+		            }
+				}
+		}
+}</ScriptText>
+</ScriptDefinition>

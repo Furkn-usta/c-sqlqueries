@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiFaturaDurum" Enabled="true" Priority="0" ScriptName="ÇekiFaturaDurum">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 22.09.2023 14:53:34 ÇekiFaturaDurum
+
+
+function OnBeforePost(sender,ev)
+{
+    if(BaseObject == null 	
+    || BaseObject.CurrentRow == null 	
+    || BaseObject.CurrentRow.Row == null
+    /*
+    || BaseObject.CurrentRow.Row.IsNull("UD_PackagingListType")
+    || BaseObject.CurrentRow.Row["UD_PackagingListType"].ToString().Trim() == ""
+    */
+    )
+            return null;
+
+	date_ = Convert.ToDateTime(BaseObject.CurrentRow.Row["PackagingDate"]);
+	dt = new DateTime(2023,09,22);
+	if(dt &gt; date_)
+		return null;
+	
+	 if(BaseObject.CurrentRow.Row.IsNull("UD_PackagingListType") || BaseObject.CurrentRow.Row["UD_PackagingListType"].ToString() == "")
+        {
+            sender.ShowMessage("Çeki Listesi Türü Seçimi Yapilmadan Kayit Gerçekleştirilemez..scr{ÇekiFaturaDurum}!");
+            ev.Cancel = true;
+            return null;
+        }
+        
+    ud_plt = BaseObject.CurrentRow.Row["UD_PackagingListType"].ToString().Trim();
+    ud_ninvc = Convert.ToInt32(BaseObject.CurrentRow.Row["UD_NInvoice"]);
+    ud_yinvc = Convert.ToInt32(BaseObject.CurrentRow.Row["UD_YInvoice"]);
+  /* 
+    if(ud_yinvc == 1 &amp;&amp; ud_ninvc == 1)
+        {
+            BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("IsApproved",1);
+            BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_NInvoice",0);
+            
+            return null;
+        }
+       */
+    if (ud_yinvc == 0 &amp;&amp; ud_ninvc == 1)
+        {
+           if(ud_plt.ToString() != "Üretim")
+           {
+              BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("IsApproved",0);
+              
+              sender.ShowMessage("Çeki Listesi Türü Üretim Seçildiğinden Dolayi Çeki Onaysiz Durumuna Çekildi..scr{ÇekiFaturaDurum}");              
+            }
+            
+        }
+    else if(ud_yinvc == 1 &amp;&amp; ud_ninvc == 1)
+    {
+         sender.ShowMessage("Fatura Durumunda 2 İşaretleme Yapildi..scr{ÇekiFaturaDurum}");
+         ev.Cancel = true;
+         return null;
+    }
+    
+    
+    if(ud_plt.ToString() != "Üretim" &amp;&amp; ud_yinvc == 1)
+           {
+              BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("IsApproved",1);
+               BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_NInvoice",0);
+              
+       }
+     else if (ud_plt.ToString() != "Üretim")
+     {
+    			 BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("IsApproved",0);
+     	          BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_NInvoice",1);
+     }
+     if(ud_plt.ToString() == "Üretim")
+     {
+      BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("IsApproved",1);
+      BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_NInvoice",0);
+      BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_YInvoice",0);
+     }
+    
+}</ScriptText>
+</ScriptDefinition>

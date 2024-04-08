@@ -1,0 +1,501 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DatadanDatayaButonİleAktarım" Enabled="true" Priority="0" ScriptName="DatadanDatayaButonİleAktarım">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptVM" />
+    <Event Enabled="true" EventName="ViewLoaded" FunctionName="OnViewLoaded" ObjectName="InventoryReceiptVM" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnViewLoaded(sender, e)
+{
+
+//TaxNo
+
+    if(BaseObject != null)
+    {
+          BaseObject.FindControl("CodebtnRun").Click += ButtonClick; //butona name verilen isim CodebtnRun
+    }
+}
+
+function ButtonClick(sender, e)
+{
+	if(BaseObject.ActiveEntity == null 
+	|| BaseObject.ActiveEntity.CurrentRow == null 
+	|| BaseObject.ActiveEntity.CurrentRow.Row == null
+    || BaseObject.ActiveEntity.CurrentRow.Row.IsNull("CurrentAccountId")
+    || BaseObject.ActiveEntity.CurrentRow.Row.IsNull("ReceiptType")
+    || BaseObject.ActiveEntity.CurrentRow.Row.IsNull("UD_Control")
+    || BaseObject.ActiveEntity.CurrentRow.Row.IsNull("IsTaxExempted")
+    || Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["UD_Control"])==1
+    || (Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["ReceiptType"]) != 120 &amp;&amp; Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["ReceiptType"]) != 3)
+    
+   // || BaseObject.ActiveEntity.CurrentRow.Row.IsNull("OutWarehouseId")
+    ) // 7 id li depo
+    	return null;
+
+    //çalışması istenilen kullanıcı recidleri  
+    if(BaseObject.ActiveSession.User.RecId == 1 || BaseObject.ActiveSession.User.RecId ==2 || BaseObject.ActiveSession.User.RecId ==4 || BaseObject.ActiveSession.User.RecId ==16)
+    {
+    /*
+    source_db_ = "ACExtreme";
+    target_db_ = "PExtreme";
+	*/
+	source_db_ = "Extreme2023";
+    target_db_ = "Yurdakul";
+    companyid_ = 7;
+    fi_account_rec = Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["CurrentAccountId"]);
+    rec_type = Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["ReceiptType"]);
+    date_ = Convert.ToDateTime(BaseObject.ActiveEntity.CurrentRow.Row["ReceiptDate"]);
+    header_rec_ = Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["RecId"]);
+    is_tax = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["IsTaxExempted"]);
+    type_of_shipment = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["TypeOfShipment"]);
+    is_repair = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["IsRepair"]);
+    
+    if(BaseObject.ActiveEntity.CurrentRow.Row.IsNull("IsClosed"))
+    {
+     	is_closed=0;
+    }
+    else 
+    {
+    	is_closed = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["IsClosed"]);     
+    }
+    
+    
+     if(BaseObject.ActiveEntity.CurrentRow.Row.IsNull("IsCancelled"))
+    {
+     	is_canceled=0;
+    }
+    else 
+    {
+     is_canceled = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["IsCancelled"]);
+   
+    }
+    
+    
+    inserted_date = BaseObject.ActiveEntity.CurrentRow.Row["InsertedAt"].ToString();
+    inserted_by  = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["InsertedBy"]);
+    control_code = Convert.ToInt16(BaseObject.ActiveEntity.CurrentRow.Row["ControlCode"]);
+    
+    
+
+    warehouse_ = 7;
+    
+    if(BaseObject.ActiveEntity.CurrentRow.Row.IsNull("DocumentNo"))
+        source_document_no="";
+    else
+        source_document_no = BaseObject.ActiveEntity.CurrentRow.Row["DocumentNo"].ToString();
+	
+    if(!BaseObject.ActiveEntity.CurrentRow.Row.IsNull("ForexId"))
+          forexid_ = Convert.ToInt32(BaseObject.ActiveEntity.CurrentRow.Row["ForexId"]);
+   /* else
+      
+    
+    */
+
+
+    if(BaseObject.ActiveEntity.CurrentRow.Row.IsNull("ForexRate"))
+        forexrate_="0.0";
+    else
+        forexrate_ = Convert.ToDecimal(BaseObject.ActiveEntity.CurrentRow.Row["ForexRate"]);
+    
+    
+//Kaynak Carisinin eşleşmesi için Taxnosu alınıyor
+    fi_account_source_query = "use "+source_db_; //KaynakDb
+	fi_account_source_query += " select top 1 isnull(F.TaxNo,\'\') [s_tax] from FI_Account F with (nolock) where F.RecId=\'"+fi_account_rec+"\' and F.CompanyId="+BaseObject.ActiveSession.Company.RecId;
+	//  MessageBox.Show(fi_account_source_query);//1
+
+    dt_fi_account_source = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_fi_account_source",fi_account_source_query);
+
+	if(dt_fi_account_source==null || dt_fi_account_source.Rows.Count&lt;=0)
+		return null;
+    source_tax_ = dt_fi_account_source.Rows[0]["s_tax"].ToString();
+
+//Hedef Cari ile eşleşmesi için Taxnosu kaynaktaki ile eşleştiriliyor
+	fi_account_target_query = "use "+target_db_; //HedefDb
+	fi_account_target_query += " select top 1 isnull(FF.RecId,\'\') [t_rec] ,isnull((select top 1 isnull(FA.RecId,0) from FI_Address FA with (nolock) where FA.CurrentAccountId=FF.RecId),0) [t_addres_rec] ,isnull((select top 1 isnull(FAC.RecId,0) from FI_AccountContact FAC with (nolock) where FAC.CurrentAccountId=FF.RecId),0) [t_contact_rec] from FI_Account FF with (nolock) where isnull(FF.TaxNo,\'\')=\'"+source_tax_+"\' and FF.CompanyId=\'"+companyid_.ToString()+"\'";
+ // MessageBox.Show(fi_account_target_query);//2
+	dt_fi_account_target = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_fi_account_target",fi_account_target_query);
+	if(dt_fi_account_target==null || dt_fi_account_target.Rows.Count&lt;=0)
+		return null;	
+	t_fi_rec_ = Convert.ToInt32(dt_fi_account_target.Rows[0]["t_rec"]);
+    t_fi_add_rec_ = Convert.ToInt32(dt_fi_account_target.Rows[0]["t_addres_rec"]);
+    t_contact_rec_ = Convert.ToInt32(dt_fi_account_target.Rows[0]["t_contact_rec"]);
+ 
+    //Hedefteki 120 tipinde oluşmuş fişin en son oluşan fiş nosuna bir ekleniyor
+    target_r_receipt_no =" use "+target_db_;//HedefDb
+    target_r_receipt_no += " select case ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=8 then cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=7 then \'0\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=6 then \'00\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=5 then \'000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=4 then \'0000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=3 then \'00000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=2 then \'000000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=1 then \'0000000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) else \'00000001\' end [fis_no] ";
+    target_r_receipt_no += " from IM_Receipt R with (nolock) where R.CompanyId=\'"+companyid_+"\' and R.ReceiptType="+rec_type;    
+    
+    // MessageBox.Show(target_r_receipt_no);
+    dt_r_receipt_no_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_r_receipt_no_",target_r_receipt_no);
+	if(dt_r_receipt_no_==null || dt_r_receipt_no_.Rows.Count&lt;=0)
+		return null;
+   
+	fis_no = dt_r_receipt_no_.Rows[0]["fis_no"].ToString();
+
+
+    //Kaynak başlık döviz kodu boş değilse
+    if(!BaseObject.ActiveEntity.CurrentRow.Row.IsNull("ForexId"))
+    {
+    source_forexid_query = "use "+source_db_; //KaynakDb
+    source_forexid_query = " select isnull(MF.ForexCode,\'\') [f_code] from MD_Forex MF with (nolock) where MF.RecId=\'"+forexid_.ToString()+"\'";
+    dt_source_forexid_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_source_forexid_",source_forexid_query);
+	
+    // MessageBox.Show(source_forexid_query);
+    if(dt_source_forexid_==null || dt_source_forexid_.Rows.Count&lt;=0)
+		return null;    
+    source_f_code_ = dt_source_forexid_.Rows[0]["f_code"].ToString();
+
+   
+    //Hedefteki Döviz kodu ile eşleştirip RecIdsi alınıyor
+    target_forexid_query = "use "+target_db_; //KaynakDb
+    target_forexid_query = " select isnull(MF.RecId,0) [f_rec] from MD_Forex MF with (nolock) where MF.ForexCode=\'"+source_f_code_.ToString()+"\'";
+    dt_target_forexid_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_forexid_",target_forexid_query);
+	if(dt_target_forexid_==null || dt_target_forexid_.Rows.Count&lt;=0)
+		return null;
+    targer_f_rec_ = dt_target_forexid_.Rows[0]["f_rec"].ToString();
+
+    /*
+        BAŞLIK FOREX İNCELENECEK
+    */
+
+    //Hedefte Fiş Başlığı Oluşturma ve veri ekleme is_canceled   
+	target_insert_query = "use "+target_db_;  //HedefDb  
+	target_insert_query += " insert into IM_Receipt (IsDeleted,ControlCode,InsertedAt,InsertedBy,HasNegativeEffect,IsCancelled,IsClosed,IsRepair,IsTaxExempted,TypeOfShipment,ReceiptTime,ReceiptSubType,CompanyId,ReceiptType,ReceiptNo,ReceiptDate,CurrentAccountId,OutWarehouseId,DocumentNo,ForexId,ForexRate) ";
+	target_insert_query += " values (0,"+control_code.ToString()+",convert(datetime,\'"+inserted_date.ToString()+"\',104),"+inserted_by.ToString()+",0,"+is_canceled+","+is_closed+","+is_repair+",\'"+is_tax.ToString()+"\',"+type_of_shipment.ToString()+",GETDATE(),0,"+companyid_+","+rec_type+",\'"+fis_no+"\',convert(datetime,\'"+date_.ToString()+"\',104),"+t_fi_rec_+","+warehouse_+",\'"+source_document_no+"\',"+targer_f_rec_+",\'"+forexrate_.ToString().Replace(",",".")+"\')";
+	//MessageBox.Show(target_insert_query);
+	//MessageBox.Show(target_insert_queryy);
+    dt_target_insert_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_insert_",target_insert_query);
+	
+	
+	if(dt_target_insert_==null || dt_target_insert_.Rows.Count&lt;0)
+		return null;
+    }
+
+    //Kaynak başlık döviz kodu boşsa 
+    if(BaseObject.ActiveEntity.CurrentRow.Row.IsNull("ForexId"))
+    {
+         //Hedefte Fiş Başlığı Oluşturma ve veri ekleme
+	target_insert_query = "use "+target_db_;  //HedefDb  
+	target_insert_query += " insert into IM_Receipt (IsDeleted,ControlCode,InsertedAt,InsertedBy,HasNegativeEffect,IsCancelled,IsClosed,IsRepair,IsTaxExempted,TypeOfShipment,ReceiptTime,ReceiptSubType,CompanyId,ReceiptType,ReceiptNo,ReceiptDate,CurrentAccountId,OutWarehouseId,DocumentNo,ForexId,ForexRate) ";
+	target_insert_query += " values (0,"+control_code.ToString()+",convert(datetime,\'"+inserted_date.ToString()+"\',104),"+inserted_by.ToString()+",0,"+is_canceled+","+is_closed+","+is_repair+",\'"+is_tax.ToString()+"\',"+type_of_shipment.ToString()+",GETDATE(),0,"+companyid_+","+rec_type+",\'"+fis_no+"\',convert(datetime,\'"+date_.ToString()+"\',104),"+t_fi_rec_+","+warehouse_+",\'"+source_document_no+"\',null,\'"+forexrate_.ToString().Replace(",",".")+"\')";
+	
+    MessageBox.Show(target_insert_query);
+    dt_target_insert_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_insert_",target_insert_query);
+	if(dt_target_insert_==null || dt_target_insert_.Rows.Count&lt;0)
+		return null; 
+    }
+
+    if(t_fi_add_rec_ != 0)
+    {
+        target_insert_fi_address_query = "use "+target_db_;  //HedefDb  
+        target_insert_fi_address_query += " update IM_Receipt set AddressId=\'"+t_fi_add_rec_.ToString()+"\',ContactId=\'"+t_contact_rec_.ToString()+"\' where ReceiptNo=\'"+fis_no.ToString()+"\' and ReceiptType=\'"+rec_type.ToString()+"\' and CompanyId=\'"+companyid_.ToString()+"\'";
+        //MessageBox.Show(target_insert_fi_address_query.ToString());
+        dt_update_target_insert_fi_address_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_update_target_insert_fi_address_",target_insert_fi_address_query);
+                if(dt_update_target_insert_fi_address_==null || dt_update_target_insert_fi_address_.Rows.Count&lt;0)
+                    return null;      
+    }
+
+
+            //MessageBox.Show(target_insert_query);
+  
+    //Hedefte oluşan Fişin satırlarına erişmek için fişin RecIdsi alınıyor
+    inserted_target_rec= "use "+target_db_; //HedefDb
+    inserted_target_rec += " select R.RecId [rec_] from IM_Receipt R with (nolock) where R.ReceiptType="+rec_type+" and R.ReceiptNo=\'"+fis_no+"\' AND R.CompanyId=\'"+companyid_+"\'";
+    //MessageBox.Show(inserted_target_rec);
+    dt_target_insert_rec_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_insert_rec_",inserted_target_rec);
+    if(dt_target_insert_rec_==null || dt_target_insert_rec_.Rows.Count&lt;0)
+		return null;
+    inserted_rec = Convert.ToInt32(dt_target_insert_rec_.Rows[0]["rec_"]);
+
+
+		foreach(dr in BaseObject.ActiveEntity.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and InventoryId is not null") )
+		{
+            source_row_query = "use "+source_db_;
+            source_row_query += " select isnull((select top 1 isnull(VI.ItemName,\'\') from IM_VariantItem VI with (nolock) where VI.RecId=(select top 1  isnull(IV.Variant1Id,0) from IM_ItemVariant IV with (nolock) where IV.RecId=RIV.InventoryVariantId)),\'\') [varyant] ";
+            source_row_query += " ,isnull(INV.AccessCode,\'\') [accode] , isnull(INV.InventoryName,\'\') [mal_adi]";
+            source_row_query += " ,isnull(RI.GrossQuantity,0) [gross_quantity] ,isnull(RI.Quantity,0) [quantity] ";
+            source_row_query += " ,isnull(MUI.UnitName,\'\') [brm] , isnull(RI.UnitPrice,0) [fyt]";
+            source_row_query += " ,isnull(RI.ForexId,0) [source_f_id] ,isnull(RI.ForexRate,0) [source_f_rate]";
+            source_row_query += " ,isnull(RI.ForexUnitPrice,0) [source_forex_unit_price] ,isnull(G.GroupName,\'\') [source_group_name]";
+            source_row_query += " ,SUBSTRING(isnull(INV.InventoryCode,\'\'),1,1) [source_bas_harf_mal_adi] ";    
+            source_row_query += " ,isnull(INV.UD_IpTipAd,\'\') [source_ozel_alan]";        //Özel Alan Adı
+            source_row_query += " ,isnull(RI.VatRate,0) [source_kdv] ,isnull(RI.VatIncluded,0) [source_kdv_inc]";
+            source_row_query += " from  IM_Receipt R with (nolock) ";
+            source_row_query += " left join IM_ReceiptItem RI with (nolock) on RI.InventoryReceiptId=R.RecId";
+            source_row_query += " left join IM_ReceiptItemVariant RIV with (nolock) on RIV.InventoryReceiptItemId=RI.RecId";
+            source_row_query += " left join IM_Item INV with (nolock) on INV.RecId=RI.InventoryId";
+            source_row_query += " left join MD_UnitSetItem MUI with (nolock) on MUI.RecId=RI.UnitId ";
+            source_row_query += " left join IM_Group G with (nolock) on G.RecId = INV.GroupId ";            
+            source_row_query += " where RI.RecId="+Convert.ToInt32(dr["RecId"]);
+            source_row_query += " and R.ReceiptType=\'"+rec_type.ToString()+"\'";
+            source_row_query += " and RI.InventoryId=\'"+Convert.ToInt32(dr["InventoryId"])+"\'";
+            source_row_query += " and R.CompanyId="+BaseObject.ActiveSession.Company.RecId;
+            /*
+            rst_ = dr["ReceiptSubType"].ToString();
+            hne_ = dr["HasNegativeEffect"].ToString();
+            fpm_ = dr["FabricProductionMethod"].ToString();
+            ip_ = dr["IsApproved"].ToString();
+            wf_ = dr["WithholdingFactor"].ToString(); 
+            wd_ = dr["WithholdingDivisor"].ToString(); 
+            ct_ = dr["CalcType"].ToString(); 
+            atvb_ = dr["AddToVatBase"].ToString(); 
+            ite_ = dr["IsTaxExempted"].ToString(); 
+            ia_ = dr["InsertedAt"].ToString(); 
+            ib_ = dr["InsertedBy"].ToString(); 
+            id_ = dr["IsDeleted"].ToString(); 
+            nfntr_ = dr["NotForNTR"].ToString(); 
+            */
+          
+            rst_ = Convert.ToInt16(dr["ReceiptSubType"]);
+            hne_ = Convert.ToInt16(dr["HasNegativeEffect"]);
+            fpm_ = Convert.ToInt16(dr["FabricProductionMethod"]);
+            ip_ = Convert.ToInt16(dr["IsApproved"]);
+            wf_ = Convert.ToInt16(dr["WithholdingFactor"]);
+            wd_ = Convert.ToInt16(dr["WithholdingDivisor"]);
+            ct_ = Convert.ToInt16(dr["CalcType"]); 
+            atvb_ = Convert.ToInt16(dr["AddToVatBase"]);
+            ite_ = Convert.ToInt16(dr["IsTaxExempted"]);
+            ia_ = dr["InsertedAt"].ToString(); 
+            ib_ = Convert.ToInt16(dr["InsertedBy"]);
+            id_ = Convert.ToInt16(dr["IsDeleted"]);
+            nfntr_ = Convert.ToInt16(dr["NotForNTR"]);
+
+           // MessageBox.Show(source_row_query);
+
+            dt_source_row_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_source_row_",source_row_query);
+            if(dt_source_row_==null || dt_source_row_.Rows.Count&lt;=0)
+                return null;
+            source_varyant_ = dt_source_row_.Rows[0]["varyant"].ToString();
+            source_accode_ = dt_source_row_.Rows[0]["accode"].ToString();
+            source_maladi_ = dt_source_row_.Rows[0]["mal_adi"].ToString();
+            source_gross_quantity_ = Convert.ToDecimal(dt_source_row_.Rows[0]["gross_quantity"]);
+            source_quantity_ = Convert.ToDecimal(dt_source_row_.Rows[0]["quantity"]);
+            source_brm_ = dt_source_row_.Rows[0]["brm"].ToString();
+            source_fyt_ = Convert.ToDecimal(dt_source_row_.Rows[0]["fyt"]);
+            source_f_id_ = Convert.ToInt32(dt_source_row_.Rows[0]["source_f_id"]);
+            source_f_rate_ = Convert.ToDecimal(dt_source_row_.Rows[0]["source_f_rate"]);
+            source_forex_unit_price_ =  Convert.ToDecimal(dt_source_row_.Rows[0]["source_forex_unit_price"]);
+            source_group_name_ = dt_source_row_.Rows[0]["source_group_name"].ToString();
+            source_bas_harf_mal_adi_ = dt_source_row_.Rows[0]["source_bas_harf_mal_adi"].ToString();
+            source_ozel_alan_ = dt_source_row_.Rows[0]["source_ozel_alan"].ToString();
+            source_kdv_ = Convert.ToInt32(dt_source_row_.Rows[0]["source_kdv"]);
+            source_kdv_inc_ = Convert.ToInt32(dt_source_row_.Rows[0]["source_kdv_inc"]);
+
+            if(source_f_id_ != 0)
+            {
+            target_row_forex_id = "use "+target_db_;
+            target_row_forex_id += " select isnull(MF.RecId,0) [target_forex_rec] from MD_Forex MF with (nolock) where MF.RecId="+source_f_id_;
+            dt_target_forex_id_row_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_forex_id_row_",target_row_forex_id);
+            if(dt_target_forex_id_row_==null || dt_target_forex_id_row_.Rows.Count&lt;0)
+                return null;
+             target_row_forex_rec_ =  Convert.ToInt32(dt_target_forex_id_row_.Rows[0]["target_forex_rec"]);//1
+            }
+            else 
+            target_row_forex_rec_= 0;//0
+
+
+            target_mui_query="use "+target_db_;
+            target_mui_query="select top 1 MUI.RecId [mui_rec] from MD_UnitSetItem MUI with (nolock) where MUI.UnitName=\'"+source_brm_.ToString()+"\'" ;
+            dt_target_mui_row_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_target_mui_row_",target_mui_query);
+            if(dt_target_mui_row_==null || dt_target_mui_row_.Rows.Count&lt;0)
+                return null;
+            target_mui_rec_ =  Convert.ToInt32(dt_target_mui_row_.Rows[0]["mui_rec"]);
+
+
+
+            //Varyantlı Kumaş ise 
+            if((source_varyant_.ToString() !="Ham - Boş" &amp;&amp;  source_varyant_.ToString() !="HAM")  &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {
+                if(target_row_forex_rec_ == 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10338,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',null,\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+               // MessageBox.Show(insert_row_target);
+                dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+              }
+            }
+
+            //Varyantlı Kumaş ise 
+            if((source_varyant_.ToString() !="Ham - Boş" &amp;&amp; source_varyant_.ToString() !="HAM") &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {
+                if(target_row_forex_rec_ != 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10338,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+            //Varyantsız Kumaş ise
+            if((source_varyant_.ToString() == "Ham - Boş" || source_varyant_.ToString() =="HAM") &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {   
+                if(target_row_forex_rec_ == 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10339,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',null,\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+             //Varyantsız Kumaş ise
+            if((source_varyant_.ToString() == "Ham - Boş" || source_varyant_.ToString() == "HAM")  &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {
+                if(target_row_forex_rec_ != 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10339,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+            //İplik ise 
+
+             if(source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="N")
+            {
+                 if(target_row_forex_rec_ == 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10334,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',null,\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+             if(source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="N")
+            {
+                 if(target_row_forex_rec_ != 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10334,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+            if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()=="08" || source_ozel_alan_.ToString()=="09"))
+            {
+
+                if(target_row_forex_rec_ == 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10335,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',null,\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+             if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()=="08" || source_ozel_alan_.ToString()=="09"))
+            {
+
+                if(target_row_forex_rec_ != 0)
+                {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10335,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+
+
+            if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()!="08" || source_ozel_alan_.ToString()!="09"))
+            {
+                if(target_row_forex_rec_ == 0)
+                {
+                 insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10337,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',null,\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+            if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()!="08" || source_ozel_alan_.ToString()!="09"))
+            {
+                if(target_row_forex_rec_ != 0)
+                {
+                 insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (ReceiptSubType,HasNegativeEffect,FabricProductionMethod,IsApproved,WithholdingFactor,WithholdingDivisor,CalcType,AddToVatBase,IsTaxExempted,InsertedAt,InsertedBy,IsDeleted,NotForNTR,InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId,VatRate,VatIncluded)";
+                insert_row_target += " values (\'"+rst_+"\',\'"+hne_+"\',\'"+fpm_+"\',\'"+ip_+"\',\'"+wf_+"\',\'"+wd_+"\',\'"+ct_+"\',\'"+atvb_+"\',\'"+ite_+"\',convert(datetime,\'"+ia_.ToString()+"\',104),\'"+ib_+"\',\'"+id_+"\',\'"+nfntr_+"\',\'"+inserted_rec+"\',10337,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+",\'"+source_kdv_+"\',\'"+source_kdv_inc_+"\')";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+                }
+            }
+
+            /*
+            if(source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="N")
+            {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId)";
+                insert_row_target += " values ("+inserted_rec+",10334,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+")";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+            }
+            else if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()=="08" || source_ozel_alan_.ToString()=="09"))
+            {
+                insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId)";
+                insert_row_target += " values ("+inserted_rec+",10335,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+")";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+            }
+            else if (source_accode_.ToString() == "YARN" &amp;&amp; source_bas_harf_mal_adi_.ToString()=="D" &amp;&amp; (source_ozel_alan_.ToString()!="08" || source_ozel_alan_.ToString()!="09"))
+            {
+                 insert_row_target =  "use "+target_db_; //HedefDb
+                insert_row_target += " insert into IM_ReceiptItem (InventoryReceiptId,InventoryId,ReceiptType,ItemType,ReceiptDate,Explanation,PartyNo,GrossQuantity,Quantity,UnitId,UnitPrice,ForexId,ForexRate,ForexUnitPrice,OutWarehouseId)";
+                insert_row_target += " values ("+inserted_rec+",10337,"+rec_type+",1,convert(datetime,\'"+date_.ToString()+"\',104),\'"+source_group_name_+"\',\'"+source_varyant_+"\',\'"+source_gross_quantity_.ToString().Replace(",",".")+"\',\'"+source_quantity_.ToString().Replace(",",".")+"\',"+target_mui_rec_+",\'"+source_fyt_.ToString().Replace(",",".")+"\',"+target_row_forex_rec_+",\'"+source_f_rate_.ToString().Replace(",",".")+"\',\'"+source_forex_unit_price_.ToString().Replace(",",".")+"\',"+warehouse_+")";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+            }
+            */
+
+        }
+        BaseObject.ActiveEntity.ShowMessage("Başarıyla Kopyalandı..{scr:DatadanDatayaButonİleAktarım}");
+        updateSQL="update IM_Receipt set UD_Control=1 where CompanyId=\'"+BaseObject.ActiveSession.Company.RecId+"\' and ReceiptType=\'"+rec_type.ToString()+"\' and RecId=\'"+header_rec_.ToString()+"\'";
+		//UtilityFunctions.SqlCustomNonQuery(BaseObject.ActiveSession.Connection, BaseObject.ActiveSession.Transaction, updateSQL);
+
+		  dt_updateSQL_ = UtilityFunctions.GetDataTableList(BaseObject.ActiveEntity.Provider, BaseObject.ActiveEntity.Connection, BaseObject.ActiveEntity.Transaction, "dt_updateSQL_",updateSQL);
+                if(dt_updateSQL_==null || dt_updateSQL_.Rows.Count&lt;0)
+                    return null;
+        BaseObject.ActiveEntity.Get(header_rec_);
+        
+    }
+
+}
+    
+
+
+</ScriptText>
+</ScriptDefinition>

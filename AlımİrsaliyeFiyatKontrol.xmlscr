@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="AlımİrsaliyeFiyatKontrol" Enabled="true" Priority="0" ScriptName="AlımİrsaliyeFiyatKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 16.08.2022 15:47:00
+
+function sM(ori_row,recNo)
+{
+   BaseObject.CurrentRow.Row.SetField&lt;|Int16|&gt;("IsApproved", 0);
+	sb = new StringBuilder();
+	    if(recType == "Alım")
+		sb.AppendLine("&lt;html&gt;&lt;br&gt;"+recType+" Fiş No: " + recNo);
+   	sb.AppendLine("&lt;/html&gt;");
+    tms = BaseObject.Container.Resolve&lt;|TaskMessageService|&gt;("TaskMessageService");
+	tms.sM("x;y;z", "Konu", sb.ToString());
+}
+
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; !BaseObject.Data.Tables.Contains("IM_ReceiptItem"))
+		
+ 	foreach(ix in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId IS NOT NULL"))
+    {
+     a = "select Price from IM_Item as it left join IM_ItemPriceList as itpl on it.RecId=itpl.InventoryId where itpl.RecId  ="+ix["ItemOrderNo"];
+	 b = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "b", a);
+ 				c=Convert.ToInt32(b.Rows[0]["Price"]);
+				sF=Convert.ToInt32(ix["UnitPrice"]);		
+ 				if(sF!=c)
+ 				{
+			 ev.Row[eventArg.Row.Table.Columns["IsApproved"]] = 0;
+	 		 sM(ix,"Alım", BaseObject.CurrentRow["ReceiptNo"].ToString());
+				} 
+	}
+}</ScriptText>
+</ScriptDefinition>

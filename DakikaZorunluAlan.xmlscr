@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DakikaZorunluAlan" Enabled="true" Priority="0" ScriptName="DakikaZorunluAlan">
+  <Events>
+    <Event Enabled="true" ObjectName="InitialCostEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InitialCostEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 21.03.2023 16:21:35
+function OnBeforePost(sender, ev)
+{
+
+	if(BaseObject == null || BaseObject.CurrentRow == null ||BaseObject.CurrentRow.Row == null )
+		return null;
+	
+	if(BaseObject.CurrentRow.Row["UD_DikimDK"]==0)
+	{
+	BaseObject.ShowMessage("Dikim Dakika Boş Birakilamaz! {scr:DakikaZorunlualan}");
+	ev.Cancel=true;
+	return null;
+		}
+}</ScriptText>
+</ScriptDefinition>

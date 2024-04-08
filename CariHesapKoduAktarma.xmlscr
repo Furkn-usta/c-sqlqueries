@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CariHesapKoduAktarma" Enabled="true" Priority="0" ScriptName="CariHesapKoduAktarma">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="Furkan Usta" EntryDate="2023-04-18T00:00:00">
+      <Change>Cari kartlarında cari kodu otomatik olarak kullanıcı tanımlı alana kayıt ederken atanır.</Change>
+    </History>
+  </Histories>
+  <ScriptText>/*
+Cari kartlarında cari kodu otomatik olarak kullanıcı tanımlı alana kayıt ederken atanır.
+*/
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("CurrentAccountCode"))
+		return null;
+
+	code_ = BaseObject.CurrentRow.Row["CurrentAccountCode"].ToString();
+  BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("UD_KOD2",code_.ToString());
+}
+</ScriptText>
+</ScriptDefinition>

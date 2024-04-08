@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DepoKullanıcıKontrol" Enabled="true" Priority="0" ScriptName="DepoKullanıcıKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 10.05.2023 13:54:59
+
+function OnBeforePost(sender,ev)
+{		
+	if (BaseObject == null 
+	|| BaseObject.CurrentRow == null
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType"))
+		return null;
+	
+	if(BaseObject.ActiveSession.User.RecId ==1)
+		return null;
+		
+	if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) &gt; 100)
+		{
+			if(Convert.ToInt32(BaseObject.CurrentRow.Row["OutWarehouseId"])	== 1)
+				{
+				 sender.ShowMessage("Seçili Depoya "+BaseObject.ActiveSession.User.UserName.ToString()+" Kullanıcısının İşlem Gerçekleştirmeye Yetkisi Bulunmamaktadır..! src:{DepoKullanıcıKontrol} ");
+				 ev.Cancel =	true;
+				 return null;
+				}
+		}
+	else if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) &lt; 100 &amp;&amp; (Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 17 &amp;&amp; Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 10 ))		
+		{
+			if(Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])	== 1)
+				{
+				 sender.ShowMessage("Seçili Depoya "+BaseObject.ActiveSession.User.UserName.ToString()+" Kullanıcısının İşlem Gerçekleştirmeye Yetkisi Bulunmamaktadır..! src:{DepoKullanıcıKontrol} ");
+				 ev.Cancel =	true;
+				 return null;
+				}	
+		}
+	else if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 17)		
+		{
+			if(Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])	== 1 || Convert.ToInt32(BaseObject.CurrentRow.Row["OutWarehouseId"])	== 1)
+				{
+				 sender.ShowMessage("Seçili Depoya "+BaseObject.ActiveSession.User.UserName.ToString()+" Kullanıcısının İşlem Gerçekleştirmeye Yetkisi Bulunmamaktadır..! src:{DepoKullanıcıKontrol} ");
+				 ev.Cancel =	true;
+				 return null;
+				}	
+		}
+			else if(Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) == 10)		
+		{
+				if(Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])	== 1 || Convert.ToInt32(BaseObject.CurrentRow.Row["ConsumptionWarehouseId"])	== 1)
+				{
+				 sender.ShowMessage("Seçili Depoya "+BaseObject.ActiveSession.User.UserName.ToString()+" Kullanıcısının İşlem Gerçekleştirmeye Yetkisi Bulunmamaktadır..! src:{DepoKullanıcıKontrol} ");
+				 ev.Cancel =	true;
+				 return null;
+				}	
+		}	
+}
+</ScriptText>
+</ScriptDefinition>

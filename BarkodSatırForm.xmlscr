@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BarkodSatırForm" Enabled="true" Priority="0" ScriptName="BarkodSatırForm">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 27.02.2023 14:44:46
+
+function OnBeforePost(sender,ev)
+{
+if(BaseObject==null
+||BaseObject.CurrentRow==null
+||BaseObject.CurrentRow.Row==null)
+return null;
+sayac =0;
+ foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and UD_RowBarcode is not null and UD_RowBarcode=1"))
+ {
+sayac = sayac + 1;
+if(sayac &gt; 1){
+BaseObject.ShowMessage("Form Alınacak Sütununda Sadece Bir Satır Seçilebilir {..scrBarkodSatırForm}");
+ev.Cancel=true;
+return null;}
+ }
+}</ScriptText>
+</ScriptDefinition>

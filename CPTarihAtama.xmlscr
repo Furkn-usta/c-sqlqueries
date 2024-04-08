@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CPTarihAtama" Enabled="true" Priority="0" ScriptName="CPTarihAtama">
+  <Events>
+    <Event Enabled="true" ObjectName="CustomerTransactionEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="CustomerTransactionEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 12.03.2024 14:17:45 CPTarihAtama
+function OnAfterSucceededPost(sender,eventArg)
+{
+    if(BaseObject == null
+    || BaseObject.CurrentRow == null
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("TranTypeId")
+    || BaseObject.CurrentRow.Row.IsNull("WorkOrderId")
+	|| BaseObject.CurrentRow.Row.IsNull("RecId")
+    )
+        return null;
+        //TranTypeId
+
+	rec_ = BaseObject.CurrentRow.Row["RecId"].ToString();
+	sb = new StringBuilder();
+	sb.Clear();
+	sb.AppendLine("select isnull(TT.Explanation,\'\') [exp_] from CR_TransactionType TT with (nolock) where TT.RecId=\'"+BaseObject.CurrentRow.Row["TranTypeId"].ToString()+"\'");
+	dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+      if(dt_sb != null || dt_sb.Rows.Count &gt; 0)
+          {
+          	activity_name = dt_sb.Rows[0]["exp_"].ToString();
+          	if(activity_name == "Yükleme Tarihi" || activity_name == "Ünlü PO Açılış Tarihi" || activity_name == "Müşteri PO Tarihi")
+	          	{
+	          		query = "select isnull(WO.AgreedDeliveryDate,\'\') [Müşteri İsteme Tarihi] , isnull(WO.InsertedAt,\'\') [Kayıt Tarihi] , isnull(WO.UD_POT,\'\')  [po] from MA_WorkOrder WO with (nolock) where WO.RecId=\'"+BaseObject.CurrentRow.Row["WorkOrderId"].ToString()+"\'";
+	          		dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query.ToString());
+      					if(dt != null || dt.Rows.Count &gt; 0)
+      					{	
+							if(activity_name == "YÜKLEME TARİHİ") //CP şablonlarının içerisinde  nasıl yazıldıysa değiştirilmelidir.
+								{
+										//update_sorgu ="update CR_CustomerTransaction set PlannedDate=DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104)) where RecId=\'"+rec_.ToString()+"\'";
+										update_sorgu = "UPDATE CR_CustomerTransaction";
+										update_sorgu += " SET PlannedDate = CASE  WHEN ";
+										update_sorgu += " DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104)) = \'Monday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104)) = \'Tuesday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104)) = \'Wednesday\'";
+										update_sorgu += " THEN DATEADD(day, -5, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104))";
+										update_sorgu += " when DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104)) = \'Sunday \'";
+										update_sorgu += " THEN DATEADD(day, -4, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104))";
+										update_sorgu += " ELSE DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["Müşteri İsteme Tarihi"].ToString()+"\',104))";
+										update_sorgu += " END WHERE RecId=\'"+rec_.ToString()+"\'";
+								
+										//BaseObject.CurrentRow.Row.SetField&lt;|date|&gt;("PlannedDate",Convert.ToDateTime(dt.Rows[0]["Müşteri İsteme Tarihi"]));
+								}
+									else if (activity_name == "ÜNLÜ PO AÇILIŞ TARİHİ") //CP şablonlarının içerisinde  nasıl yazıldıysa değiştirilmelidir.
+								{
+									/*
+										update_sorgu = "UPDATE CR_CustomerTransaction";
+										update_sorgu += " SET PlannedDate = CASE  WHEN ";
+										update_sorgu += " DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Monday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Tuesday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Wednesday\'";
+										update_sorgu += " THEN DATEADD(day, -5, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104))";
+										update_sorgu += " when DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Sunday \'";
+										update_sorgu += " THEN DATEADD(day, -4, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104))";
+										update_sorgu += " ELSE DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104))";
+										update_sorgu += " END ";
+										update_sorgu += " , PlannedEndDate = CASE  WHEN ";
+										update_sorgu += " DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Monday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Tuesday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)) = \'Wednesday\'";
+										update_sorgu += " THEN DATEADD(day, -5, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104))";
+										update_sorgu += " ELSE DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104))";
+										update_sorgu += " END ";
+										update_sorgu += " WHERE RecId=\'"+rec_.ToString()+"\'";
+										*/
+										update_sorgu = "UPDATE CR_CustomerTransaction";
+										update_sorgu += " SET PlannedDate = convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)";
+										update_sorgu += " ,PlannedEndDate = convert(datetime,\'"+dt.Rows[0]["Kayıt Tarihi"].ToString()+"\',104)";
+										update_sorgu += " WHERE RecId=\'"+rec_.ToString()+"\'";
+										//BaseObject.CurrentRow.Row.SetField&lt;|date|&gt;("PlannedDate",Convert.ToDateTime(dt.Rows[0]["Kayıt Tarihi"]));
+										//BaseObject.CurrentRow.Row.SetField&lt;|date|&gt;("PlannedEndDate",Convert.ToDateTime(dt.Rows[0]["Kayıt Tarihi"]));
+								}
+									else if(activity_name == "MÜŞTERİ PO TARİHİ") //CP şablonlarının içerisinde  nasıl yazıldıysa değiştirilmelidir.
+								{
+									/*
+										update_sorgu = "UPDATE CR_CustomerTransaction";
+										update_sorgu += " SET PlannedDate = CASE  WHEN ";
+										update_sorgu += " DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Monday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Tuesday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Wednesday\'";
+										update_sorgu += " THEN DATEADD(day, -5, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104))";
+										update_sorgu += " when DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Sunday \'";
+										update_sorgu += " THEN DATEADD(day, -4, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104))";
+										update_sorgu += " ELSE DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104))";
+										update_sorgu += " END ";
+										update_sorgu += " , PlannedEndDate = CASE  WHEN ";
+										update_sorgu += " DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Monday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Tuesday\'";
+										update_sorgu += " or DATENAME(dw, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)) = \'Wednesday\'";
+										update_sorgu += " THEN DATEADD(day, -5, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104))";
+										update_sorgu += " ELSE DATEADD(day, -3, convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104))";
+										update_sorgu += " END ";
+										update_sorgu += " WHERE RecId=\'"+rec_.ToString()+"\'";
+										*/
+										update_sorgu = "UPDATE CR_CustomerTransaction";
+										update_sorgu += " SET PlannedDate = convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)";
+										update_sorgu += " ,PlannedEndDate = convert(datetime,\'"+dt.Rows[0]["po"].ToString()+"\',104)";
+										update_sorgu += " WHERE RecId=\'"+rec_.ToString()+"\'";
+										//BaseObject.CurrentRow.Row.SetField&lt;|date|&gt;("PlannedDate",Convert.ToDateTime(dt.Rows[0]["po"]));
+										//BaseObject.CurrentRow.Row.SetField&lt;|date|&gt;("PlannedEndDate",Convert.ToDateTime(dt.Rows[0]["po"]));
+								}
+								//MessageBox.Show(update_sorgu);
+								UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,update_sorgu.ToString());  
+      					}
+          
+	          	}
+	          	
+          }
+                    
+}</ScriptText>
+</ScriptDefinition>

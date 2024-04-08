@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="EkMaliyetTaşıma" Enabled="true" Priority="0" ScriptName="EkMaliyetTaşıma">
+  <Events>
+    <Event Enabled="true" ObjectName="InitialCostEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InitialCostEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnColumnChanged(sender, ev)
+{
+	
+	if(ev.Row.Table.TableName == "MA_InitialCostItem" &amp;&amp; ev.Column.ColumnName == "UnitPrice" &amp;&amp; Convert.ToInt32(ev.Row["InitialCostCardId"]) == 31 )
+	{
+	
+	total=0m;
+	if(!ev.Row.IsNull("UnitPrice") &amp;&amp; Convert.ToDecimal(ev.Row["UnitPrice"])&gt;0m)
+		 total=Convert.ToDecimal(ev.Row["UnitPrice"]);
+		 
+		    BaseObject.CurrentRow.Row.SetField&lt;|decimal|&gt;("Commission2Amount", total); 
+	    BaseObject.CurrentRow.Row.SetField&lt;|decimal|&gt;("Commission2Percent", total); 
+	}    
+		
+}
+</ScriptText>
+</ScriptDefinition>

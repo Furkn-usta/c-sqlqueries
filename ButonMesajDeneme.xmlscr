@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ButonMesajDeneme" Enabled="true" Priority="0" ScriptName="ButonMesajDeneme">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryVM" />
+    <Event Enabled="true" EventName="ViewLoaded" FunctionName="OnViewLoaded" ObjectName="InventoryVM" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnViewLoaded(sender, e)
+{
+    if(BaseObject != null)
+    {
+          BaseObject.FindControl("CodebtnRun").Click += ButtonClick; //butona name verilen isim CodebtnRun
+    }
+}
+
+function ButtonClick(sender, e)
+{
+	if(BaseObject == null || BaseObject.ActiveEntity == null || BaseObject.ActiveEntity.CurrentRow == null || BaseObject.ActiveEntity.CurrentRow.Row == null)
+		return null;
+	
+	MessageBox.Show("Deneme Butona basıldı.");
+    
+    
+}
+
+</ScriptText>
+</ScriptDefinition>

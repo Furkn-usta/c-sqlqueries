@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="AraVeGenelSayimKesimMiktarKontrol" Enabled="true" Priority="0" ScriptName="AraVeGenelSayimKesimMiktarKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="TWorkOrderProductionEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="TWorkOrderProductionEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 03.01.2024 16:49:41 AraVeGenelSayimKesimMiktarKontrol
+function OnAfterSucceededPost(sender, ev)
+{
+/*	*/
+    if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+   	|| BaseObject.CurrentRow.Row.IsNull("ProcessId")
+   	|| BaseObject.CurrentRow.Row.IsNull("SubNo")
+   	|| BaseObject.CurrentRow.Row.IsNull("WorkOrderItemId"))
+    	return null;
+    /*	
+     if(BaseObject.ActiveSession.User.RecId != 1)
+    	return null;
+	*/	
+	dikim_id = "28";
+	ara_sayim = "32";
+	genel_sayim = "39";
+	kayip_ = "5";		
+   if(Convert.ToInt16(BaseObject.CurrentRow.Row["ProcessId"]) == 32 || Convert.ToInt16(BaseObject.CurrentRow.Row["ProcessId"]) == 39)
+     {
+	 pp = "select isnull(SUM(ISNULL(WOP.Quantity,0)),0) [dikim_quant] from MA_WorkOrderProduction WOP with (nolock) where SubNo=\'"+BaseObject.CurrentRow.Row["SubNo"].ToString()+"\'  and ProcessId=\'"+dikim_id.ToString()+"\' and WorkOrderItemId=\'"+BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString()+"\' and InOut=1";
+   	 pp_dt = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "pp_dt", pp);
+		
+	 if(pp_dt == null || pp_dt.Rows.Count &lt;= 0)
+			return null; 
+			
+	dikim_quant_ = Convert.ToDecimal(pp_dt.Rows[0]["dikim_quant"]);
+	
+	pp2 = "select isnull(SUM(ISNULL(WOP.Quantity,0)),0) [sayim_quant] from MA_WorkOrderProduction WOP with (nolock) where SubNo=\'"+BaseObject.CurrentRow.Row["SubNo"].ToString()+"\'  and ProcessId=\'"+BaseObject.CurrentRow.Row["ProcessId"].ToString()+"\' and WorkOrderItemId=\'"+BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString()+"\' and InOut=1";
+    pp_dt2 = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "pp_dt2", pp2);
+		
+	 if(pp_dt2 == null || pp_dt2.Rows.Count &lt;= 0)
+			return null; 
+			
+	sayim_quant_ = Convert.ToDecimal(pp_dt2.Rows[0]["sayim_quant"]);	
+	
+	if(Convert.ToDecimal(sayim_quant_) &lt; Convert.ToDecimal(dikim_quant_))
+	{
+
+		pp3 = "select isnull(SUM(ISNULL(WOP.Quantity,0)),0) [kayip_quant] from MA_WorkOrderProduction WOP with (nolock) where SubNo=\'"+BaseObject.CurrentRow.Row["SubNo"].ToString()+"\'  and ProcessId=\'"+BaseObject.CurrentRow.Row["ProcessId"].ToString()+"\' and WOP.InOutType=\'"+kayip_.ToString()+"\'  and WorkOrderItemId=\'"+BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString()+"\' and InOut=1";
+		pp_dt3 = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "pp_dt3", pp3);
+	//	MessageBox.Show(pp3.ToString());	
+			
+		if(pp_dt3 == null || pp_dt3.Rows.Count &lt;= 0)
+				return null; 
+				
+		kayip_quant_ = Convert.ToDecimal(pp_dt3.Rows[0]["kayip_quant"]);	
+
+		
+		pp4 = " select top 1 isnull(WO.WorkOrderNo,\'\') [order_no] from MA_WorkOrder WO with (nolock) ";
+		pp4 += " left join MA_WorkOrderItem WOI with (nolock) on WOI.WorkOrderId=WO.RecId and WOI.WorkOrderSubType=1 ";
+		pp4 += " left join MA_WorkOrderProduction WOP with (nolock)on WOP.WorkOrderItemId=WOI.RecId ";
+		pp4 += " where WOP.WorkOrderItemId=\'"+BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString()+"\'";
+		pp_dt4 = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "pp_dt4", pp4);
+	//	MessageBox.Show(pp4.ToString());	
+			
+		if(pp_dt4 == null || pp_dt4.Rows.Count &lt;= 0)
+				return null; 
+				
+		order_no = pp_dt4.Rows[0]["order_no"].ToString();	
+
+		message_ = "Order Numarası = " +order_no.ToString() +" Dikim Miktarı = "+ dikim_quant_.ToString() +" Sayım Miktarı = " + sayim_quant_.ToString() + " Kayıp Miktarı = "+ kayip_quant_.ToString() + " ";
+	//	MessageBox.Show(message_.ToString());
+		
+		taskm=BaseObject.Container.Resolve&lt;|TaskMessageService|&gt;("TaskMessageService");   
+	    taskm.SendEmail("mustafa@actekstil.com;anilcan@actekstil.com;fatma.eserova@actekstil.com","Ara-Genel Sayım",message_.ToString());  
+	   // taskm.SendEmail("furkan.usta@enkayyazilim.com","Ara-Genel Sayım",message_.ToString());  
+	}
+	
+
+ }
+  
+  
+	
+ 		       	       
+}</ScriptText>
+</ScriptDefinition>

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BelgeNo üreti" Enabled="true" Priority="0" ScriptName="PosBelgeNo">
+  <Events>
+    <Event Enabled="true" ObjectName="PosEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PosEN" />
+  </Events>
+  <Histories />
+  <ScriptText>
+//Generated on 7.04.2022 10:10:23
+
+function OnBeforePost(sender, ev)
+{
+ if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null
+  || !string.IsNullOrWhiteSpace(BaseObject.CurrentRow.Row["DocumentNo"].ToString()))
+  return null;
+  
+  q = "select isnull((select SUBSTRING(\'BLG\',0,LEN(x.iNum)) + cast(cast(x.iNum as bigint) + 1 as varchar) from (SELECT top 1 SUBSTRING(DocumentNo,4,16) iNum FROM SM_Pos WHERE SUBSTRING(DocumentNo,0,4)=\'BLG\' and CompanyId = " + BaseObject.ActiveSession.Company.RecId.ToString() + " ORDER BY DocumentNo desc) x), \'BLG\'+cast(YEAR(GETDATE()) as varchar)+\'000000001\') [no]";
+  r = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "r", q);
+ 
+ if(r == null || r.Rows.Count &lt;= 0)
+   return null;
+
+ BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("DocumentNo", r.Rows[0]["no"]);
+}</ScriptText>
+</ScriptDefinition>

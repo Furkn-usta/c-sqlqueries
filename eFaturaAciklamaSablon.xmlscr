@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="eFaturaAcıklamaSablon" Enabled="true" Priority="0" ScriptName="eFaturaAcıklamaSablon">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>/* 
+26.02.2021 Akademi Ender Bey
+120 Tipli Toptan Satış Faturasında, dış ticaret seçimi yapıldığı anda
+eFatura açıklama alanına aşağıda yazan başlıkları alt alta ekleyen script.
+
+*/
+function OnColumnChanged(sender,e){  	
+    if(BaseObject!=null 
+    &amp;&amp; BaseObject.CurrentRow!=null 
+    &amp;&amp; BaseObject.CurrentRow.Row!=null
+    &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted
+    &amp;&amp; e.Column.ColumnName=="IsEximReceipt"
+	&amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") 
+	&amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==120
+	)
+		{
+		     e.Row.SetField&lt;|String|&gt;("UD_EInvoiceExplanation" , "KAP MARKA :"
+		     +Environment.NewLine+"TESLİM YERİ :"
+		     +Environment.NewLine+"TAŞIMA ŞEKLİ :"
+		     +Environment.NewLine+"TAŞIMA DETAYI:"
+		     +Environment.NewLine+"FOB TOPLAM:"
+		     +Environment.NewLine+"REFERANS :"
+		     +Environment.NewLine+"KALEM NOTU :"
+		     +Environment.NewLine+"MİKTAR DETAYI:"
+		     +Environment.NewLine+"MAL HİZMET TOPLAM TUTARI (TL):"
+		     +Environment.NewLine+"NOTIFTY :"
+		     +Environment.NewLine+"BRÜT KG :"
+		     +Environment.NewLine+"NET KG :"
+		     +Environment.NewLine+"MENŞEİ :"
+		     +Environment.NewLine+"İMALATÇI :");
+		 
+	
+		}
+}
+
+
+
+ 
+ 
+</ScriptText>
+</ScriptDefinition>

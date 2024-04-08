@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CariBazlıÖdemePlanıAtama" Enabled="true" Priority="0" ScriptName="CariBazlıÖdemePlanıAtama">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost2" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 25.01.2023 12:25:51
+gLock=true;
+function OnAfterSucceededPost(sender, ev)
+{
+
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptDate")
+	|| BaseObject.CurrentRow.Row.IsNull("RecId"))
+	
+		return null;
+		
+	query="select isnull(FI.CurrentAccountCode,0)[cd] from FI_Account FI with(nolock) "; 
+	query+="where FI.RecId="+Convert.ToInt32(BaseObject.CurrentRow.Row["CurrentAccountId"]);
+    dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction,"dt",query); 
+
+	if(dt==null || dt.Rows.Count&lt;0)
+		return null;	
+	
+	query2 ="select isnull(FI.CurrentAccountCode,0)[cdd] from FI_Account FI with(nolock) ";
+	query2+="where FI.CurrentAccountCode between \'120.01.A001\' and \'120.01.A030\' and FI.CurrentAccountCode=\'"+dt.Rows[0]["cd"].ToString()+"\'";
+//	query2+="where FI.CurrentAccountCode between \'320.01.03.01\' and \'320.01.03.99\' and FI.CurrentAccountCode=\'"+dt.Rows[0]["cd"].ToString()+"\'";
+
+	dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction,"dt2",query2); 
+	
+		if(dt2!=null &amp;&amp; dt2.Rows.Count&gt;0)
+		{
+			date=BaseObject.CurrentRow.Row["ReceiptDate"].ToString();
+
+			
+			if(Convert.ToInt32(date.Substring(0,2))&gt;=1 &amp;&amp; Convert.ToInt32(date.Substring(0,2))&lt;=15)
+			{
+				{
+			ay_sayi=Convert.ToInt32(date.Substring(3,2));
+			dates=Convert.ToInt32(date.Substring(6,4));		
+			
+		      updt ="update IM_Invoice set TermDate= Convert(datetime,\'"+Convert.ToString(dates)+"-" + Convert.ToString(ay_sayi) + "-25\') where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+		      UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,updt);
+       		}
+			
+			}
+			if(Convert.ToInt32(date.Substring(0,2))&gt;=16 &amp;&amp; Convert.ToInt32(date.Substring(0,2))&lt;=31)
+			{
+			ay_sayi=Convert.ToInt32(date.Substring(3,2));
+			dates=Convert.ToInt32(date.Substring(6,4));		
+			
+			if(ay_sayi==12)
+			{
+			ay_sayi=1;
+			dates+=1;
+			}else
+			ay_sayi+=1;
+			
+		      updt ="update IM_Invoice set TermDate= Convert(datetime,\'"+Convert.ToString(dates)+"-" + Convert.ToString(ay_sayi) + "-10\') where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+		      UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,updt);
+		      	
+       		/*
+       		if(global:gLock==true)
+       		{
+       		BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+			global:gLock==false;*/
+			
+			}
+			BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+			}
+		}		
+
+
+
+function OnAfterSucceededPost2(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptDate")
+	|| BaseObject.CurrentRow.Row.IsNull("RecId"))
+		return null;
+		
+	query="select isnull(FI.CurrentAccountCode,0)[cd] from FI_Account FI with(nolock) "; 
+	query+="where FI.RecId="+Convert.ToInt32(BaseObject.CurrentRow.Row["CurrentAccountId"]);
+    dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction,"dt",query); 
+
+	if(dt==null || dt.Rows.Count&lt;0)
+		return null;	
+	
+	query2 ="select isnull(FI.CurrentAccountCode,0)[cdd] from FI_Account FI with(nolock) ";
+	query2+="where FI.CurrentAccountCode between \'120.01.B001\' and \'120.01.B021\' and FI.CurrentAccountCode=\'"+dt.Rows[0]["cd"].ToString()+"\'";
+//	query2+="where FI.CurrentAccountCode between \'320.01.01.01\' and \'320.01.01.99\' and FI.CurrentAccountCode=\'"+dt.Rows[0]["cd"].ToString()+"\'";
+
+	dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction,"dt2",query2); 
+	
+		if(dt2!=null &amp;&amp; dt2.Rows.Count&gt;0)
+		{
+			date=BaseObject.CurrentRow.Row["ReceiptDate"].ToString();
+
+			ay_sayi=Convert.ToInt32(date.Substring(3,2));
+			dates=Convert.ToInt32(date.Substring(6,4));	
+				
+			if(ay_sayi==12)
+			{
+			ay_sayi=1;
+			dates+=1;
+			}else
+			ay_sayi+=1;
+			
+		      updt ="update IM_Invoice set TermDate= Convert(datetime,\'"+Convert.ToString(dates)+"-" + Convert.ToString(ay_sayi) + "-10\') where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+		      UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,updt);
+       		BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+		
+	}
+
+
+}
+	  		 	
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptDate")
+	|| BaseObject.CurrentRow.Row.IsNull("RecId"))
+		return null;
+}
+	  	</ScriptText>
+</ScriptDefinition>

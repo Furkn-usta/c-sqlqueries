@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CekiIrsaliyeBilgiTasima" Enabled="true" Priority="0" ScriptName="CekiIrsaliyeBilgiTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 2.02.2023 16:26:20
+function OnBeforePost(sender,ev)
+{
+if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null)
+	return null;
+	
+	foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("PackagingListItemId is not null"))
+	{
+		query="select isnull(cast(cast(PLI.LotQuantity as decimal (15,0))as nvarchar),\' \') [koli_ici_lot_adeti]";
+		query+=" ,isnull(cast(cast(PLI.Quantity as decimal (15,0))as nvarchar),\' \') [lot_ici_adeti] ";
+		query+=" ,isnull(cast(cast(PLI.PQuantity as decimal (15,0))as nvarchar),\' \') [lot_adeti]  ";
+		query+=" ,isnull((select MAX(PLII.EndPackaging)-MAX(PLII.StartPackaging)+1 from IM_PackagingListItem PLII where PLII.RecId=PLI.RecId),\' \') [koliNo]  ";
+		query+=" ,isnull((select cast((MAX(PLIII.EndPackaging)-MAX(PLIII.StartPackaging)+1) * sum(LotQuantity) as decimal(15,0))from IM_PackagingListItem PLIII where PLIII.RecId=PLI.RecId),0)[y_lot_ad]";
+		query+=" from  IM_PackagingListItem PLI where PLI.RecId="+dr["PackagingListItemId"].ToString();	
+		
+		dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);
+		
+		if(dt==null || dt.Rows.Count&lt;0)
+		 return null;
+	
+		dr.SetField&lt;|string|&gt;("UD_CekiBilgileri","||"+dt.Rows[0]["koliNo"].ToString()+"||"+"@@"+dt.Rows[0]["y_lot_ad"].ToString()+"@@"+"??"+dt.Rows[0]["lot_ici_adeti"].ToString()+"??"+"%%"+dt.Rows[0]["koli_ici_lot_adeti"].ToString()+"%%");
+	
+	}
+	
+	
+}
+</ScriptText>
+</ScriptDefinition>

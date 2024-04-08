@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BerzanDeneme" Enabled="true" Priority="0" ScriptName="BerzanDeneme">
+  <Events>
+    <Event Enabled="true" ObjectName="WorkOrderEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="WorkOrderEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 9.06.2023 11:35:46
+aciklama_="";
+function OnColumnChanged(sender, ev)
+{
+	if( BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null )
+		return null;
+	
+	if(BaseObject.Name!="WorkOrderEN" 
+	|| (ev.Row.Table.TableName != "MA_WorkOrderItemReceipt" &amp;&amp; ev.Row.Table.TableName != "MA_WorkOrderItem"  )
+	|| ev.Column.ColumnName != "ReceiptReceiptNo" )
+         return null;
+         //MessageBox.Show(ev.Column.ColumnName.ToString()+" / "+ev.Row[ev.Column.ColumnName]);
+       
+        if(ev.Column.ColumnName == "ReceiptReceiptNo")
+        {
+      //  MessageBox.Show(ev.Column.ColumnName.ToString()+" / "+ev.Row[ev.Column.ColumnName]);
+        
+        query = "select distinct isnull(IRI.Explanation,\'\') [ac] from IM_Receipt R with (nolock) ";
+        query +=" left join IM_ReceiptItem IRI  with (nolock) on IRI.InventoryReceiptId=R.RecId ";
+        query +=" where R.ReceiptNo=\'"+ev.Row[ev.Column.ColumnName].Trim()+"\' and R.ReceiptType=6 group by IRI.Explanation ";
+       	dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt", query);
+	 	if(dt==null || dt.Rows.Count&lt;0)
+		return null;
+         MessageBox.Show(query);
+         
+      global:aciklama_ = global:aciklama_.ToString()+ " - " + dt.Rows[0]["ac"].ToString();
+       		ev.Row.SetField&lt;|string|&gt;("UD_Aciklama",global:aciklama_.ToString());
+        
+	   //	str = 	"update MA_WorkOrderItemReceipt set UD_Aciklama=\'"+aciklama_.ToString()+"\' where RecId ="+ev.Row["RecId"].ToString();
+		 str = 	"update MA_WorkOrderItem set Explanation=\'"+global:aciklama_.ToString()+"\' where RecId ="+ev.Row["WorkOrderReceiptItemId"].ToString();
+		 MessageBox.Show(str);
+		 //BaseObject.Get(ev.Row["RecId"]);
+		 UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,str);
+
+}}</ScriptText>
+</ScriptDefinition>

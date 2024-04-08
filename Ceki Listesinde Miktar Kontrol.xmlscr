@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CekiListesindeMiktarKontrol" Enabled="true" Priority="0" ScriptName="CekiListesindeMiktarKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="AfterPost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 7.09.2023 16:39:36
+function OnBeforePost(sender, e)
+{
+	if (BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null )
+		return null;
+query="select case when (count(SubNo)*( ";
+query+="select Count(PLI.RecId) from IM_PackagingList PL left join IM_PackagingListItem PLI on PLI.PackagingListId=PL.RecId ";
+query+=" where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"]+"\')) != (select count(PLV.RecId) from IM_PackagingList PL left join IM_PackagingListItem PLI on PLI.PackagingListId=PL.RecId ";
+query+="left join IM_PackagingListItemVariant PLV on PLV.PackagingListItemId=PLI.RecId where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"]+"\') ";
+query+=" then \'0\' " ;
+query+=" when (count(SubNo)*(" ;
+query+="select Count(PLI.RecId) from IM_PackagingList PL left join IM_PackagingListItem PLI on PLI.PackagingListId=PL.RecId " ;
+query+=" where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"]+"\')) = (select count(PLV.RecId) from IM_PackagingList PL left join IM_PackagingListItem PLI on PLI.PackagingListId=PL.RecId ";
+query+="left join IM_PackagingListItemVariant PLV on PLV.PackagingListItemId=PLI.RecId where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"]+"\')  ";
+query+="then \'1\' ";
+query+="end [Zero Status] ";
+query+=" from ( ";
+query+="select PLV.SubNo from IM_PackagingList PL left join IM_PackagingListItem PLI on PLI.PackagingListId=PL.RecId ";
+query+="left join IM_PackagingListItemVariant PLV on PLV.PackagingListItemId=PLI.RecId where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"]+"\' ";
+query+="group by  SubNo ";
+query+=")B ";
+dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);	
+
+if(dt.Rows[0][0].ToString()=="0")
+MessageBox.Show("Çeki Satırında Bedenlerde Miktar Girilmemiştir!!! {scr:CekiListesindeMiktarKontrol}");
+}
+</ScriptText>
+</ScriptDefinition>

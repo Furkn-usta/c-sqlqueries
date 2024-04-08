@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Cari Kart Kurallari" Enabled="true" Priority="0" ScriptName="Cari Kart Kurallari">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="Burcu Karaman" EntryDate="2020-05-12T00:00:00">
+      <Change />
+    </History>
+  </Histories>
+  <ScriptText>
+function OnBeforePost(sender, eventArg)
+{
+	if((BaseObject.CurrentRow.Row.IsNull("UD_CariKodu") || BaseObject.CurrentRow.Row["UD_CariKodu"].ToString() == "") &amp;&amp; (!BaseObject.CurrentRow.Row.IsNull("CurrentAccountCode") &amp;&amp; BaseObject.CurrentRow.Row["CurrentAccountCode"].ToString() != ""))
+	{
+		nameStr=BaseObject.CurrentRow.Row["CurrentAccountCode"].ToString();
+			
+		BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("UD_CariKodu",nameStr);
+	}
+}</ScriptText>
+</ScriptDefinition>

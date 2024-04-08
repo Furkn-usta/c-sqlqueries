@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Depo Parti No Artimi" Enabled="true" Priority="0" ScriptName="DepoPartiNoArtimi">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 15.02.2016 10:15:50
+function OnBeforePost(sender, eventArg)
+{
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") &amp;&amp; ( Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==6 || Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==11 || Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==10 || (Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==1 &amp;&amp; (Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])==3 || Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])==13 || Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])==87 || Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])==88 || Convert.ToInt32(BaseObject.CurrentRow.Row["InWarehouseId"])==90) )))
+	{
+		dRows = BaseObject.Data.Tables["IM_ReceiptItem"].Select("ItemType &lt; 50","ItemOrderNo");
+		if(dRows!=null &amp;&amp; dRows.Length&gt;0)
+		{
+		    colPartyNo=BaseObject.Data.Tables["IM_ReceiptItem"].Columns["PartyNo"];
+			itemOrderNo = BaseObject.Data.Tables["IM_ReceiptItem"].Columns["ItemOrderNo"];
+			receiptNo = BaseObject.Data.Tables["IM_Receipt"].Columns["ReceiptNo"];
+			
+			rcnt = 1;
+			
+			var sonArtanNo = 1;
+			
+			foreach (dr in dRows)
+			{
+				dr[dr.Table.Columns["UD_IrsaliyeFirma"]] = BaseObject.CurrentRow.Row["UD_IrsaliyeFirma"].ToString();
+				dr[dr.Table.Columns["UD_SatirAciklama"]] = dr[dr.Table.Columns["Explanation"]].ToString();
+				
+				if (System.String.IsNullOrWhiteSpace(dr["PartyNo"].ToString()))
+				{
+				//TRY_CAST(REPLACE(PartyNo,'2024-','') as bigint)
+				var mevcutYil = DateTime.Now.Date.ToString("yyyy");
+			  //  ssss="select top 1 CONVERT(BIGINT,REPLACE(PartyNo,\'"+mevcutYil+"-\',\'\')) from IM_ReceiptItem ai where (ReceiptType = 6 or ReceiptType = 11 or ReceiptType = 10 or (ReceiptType = 1 and InWarehouseId in (3,13,87,88,90))) and LEN(PartyNo) &gt; 0 and PartyNo LIKE \'"+mevcutYil+"%\' order by CONVERT(BIGINT,REPLACE(PartyNo,\'"+mevcutYil+"-\',\'\')) desc";				
+		//	MessageBox.Show(ssss);
+					    ssss="select top 1 TRY_CAST(REPLACE(PartyNo,\'"+mevcutYil+"-\',\'\') as bigint)  from IM_ReceiptItem ai where (ReceiptType = 6 or ReceiptType = 11 or ReceiptType = 10 or (ReceiptType = 1 and InWarehouseId in (3,13,87,88,90))) and LEN(PartyNo) &gt; 0 and PartyNo LIKE \'"+mevcutYil+"%\' order by  TRY_CAST(REPLACE(PartyNo,\'"+mevcutYil+"-\',\'\') as bigint) desc";				
+	
+				var dtCounter = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "IM_ReceiptItem",ssss);								
+				if (sonArtanNo == 1)
+				{
+					if (dtCounter != null &amp;&amp; dtCounter.Rows.Count &gt; 0)
+					{
+						var sonNo = Convert.ToInt64(dtCounter.Rows[0][0].ToString());
+						sonArtanNo = sonNo + 1;
+					}
+				}
+				
+				dr[dr.Table.Columns["PartyNo"]] = mevcutYil + "-" + sonArtanNo.ToString();
+				rcnt++;
+				sonArtanNo++;
+				}
+			}
+		}
+	}
+	
+	if(!BaseObject.CurrentRow.Row.IsNull("ReceiptType") &amp;&amp;( Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==120 || Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==125))
+	{
+		dRows = BaseObject.Data.Tables["IM_ReceiptItem"].Select("ItemType &lt; 50","ItemOrderNo");
+		if(dRows!=null &amp;&amp; dRows.Length&gt;0)
+		{
+			foreach (row in dRows )
+			{
+			dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "IM_ReceiptItem","select ai.PartyNo PartyNo from IM_ReceiptItem ai where ai.RecId=(select top 1 InventoryReceiptItemId from MA_WorkOrderItemReceipt where WorkOrderReceiptItemId="+row["WorkOrderReceiptItemId"].ToString()+")");
+				if(dt!=null &amp;&amp; dt.Rows.Count&gt;0)
+				{
+				partyNo =BaseObject.Data.Tables["IM_ReceiptItem"].Columns["PartyNo"];
+				row[partyNo]=dt.Rows[0]["PartyNo"];
+				}
+			}
+		}
+	}
+}</ScriptText>
+</ScriptDefinition>

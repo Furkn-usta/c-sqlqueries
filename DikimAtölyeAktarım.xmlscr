@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DikimAtölyeAktarım" Enabled="true" Priority="0" ScriptName="DikimAtölyeAktarım">
+  <Events>
+    <Event Enabled="true" ObjectName="TWorkOrderProductionEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="TWorkOrderProductionEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 10.01.2024 18:39:57 DikimAtölyeAktarım
+
+function OnAfterSucceededPost (sender,eventArg)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("ProductionType")
+	|| BaseObject.CurrentRow.Row.IsNull("WorkOrderItemId")
+	|| BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+	|| BaseObject.CurrentRow.Row.IsNull("ProcessId")
+	|| BaseObject.CurrentRow.Row.IsNull("InOut")
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ProductionType"]) == 100
+	
+	)
+		return null;
+	//MessageBox.Show(BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString());
+	//MessageBox.Show(BaseObject.CurrentRow.Row["CurrentAccountName"].ToString());
+	if(Convert.ToInt32(BaseObject.CurrentRow.Row["InOut"]) == 0 &amp;&amp; (Convert.ToInt32(BaseObject.CurrentRow.Row["ProcessId"]) == 51 
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ProcessId"]) == 55
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ProcessId"]) == 63
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ProcessId"]) == 71) )
+	{
+	update_query = "update MA_WorkOrder set UD_DikimAtolye=\'"+BaseObject.CurrentRow.Row["CurrentAccountName"].ToString()+"\' from MA_WorkOrder WO with (nolock) left join MA_WorkOrderItem WOI with (nolock) on WOI.WorkOrderId=WO.RecId where WOI.RecId=\'"+BaseObject.CurrentRow.Row["WorkOrderItemId"].ToString()+"\' and WOI.WorkOrderSubType=1";
+	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,update_query.ToString());
+	}
+}
+
+</ScriptText>
+</ScriptDefinition>

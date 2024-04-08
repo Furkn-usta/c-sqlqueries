@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="dizideneme" Enabled="true" Priority="0" ScriptName="dizideneme">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 22.11.2022 15:10:35
+function OnBeforePost(sender,ev)
+{
+    if(BaseObject==null || BaseObject.CurrentRow==null || BaseObject.CurrentRow.Row==null )
+        return null;
+  // MessageBox.Show(BaseObject.Name.ToString());     
+  /*
+  if(sender.Name=="InventoryEN")
+ 	 sender.ShowMessage("1");
+    
+    */
+  /*  for(i=65;i&lt;=90;i++)
+    MessageBox.Show(Convert.ToChar(i));
+  */
+  
+  	/*
+    for(i=65;i&lt;=90;i++) // büyük harf
+    {
+    dizi=[i];
+    BaseObject.ShowMessage(Convert.ToChar(i));
+    }
+    */
+    
+    
+    /* 
+    dizi=[33,34,35,36];
+    foreach(i in dizi)
+    BaseObject.ShowMessage(Convert.ToChar(i));
+   */
+   
+   /*
+   for(i=48;i&lt;=57;i++) // sayılar
+    {
+ //  dizi=[i];
+   	foreach(j in dizi)
+    sender.ShowMessage();
+    BaseObject.ShowMessage(Convert.ToChar(i));
+    }*/
+    /*
+    for(i=97;i&lt;=122;i++) // küçük harf
+    {
+    dizi=[i];
+    BaseObject.ShowMessage(Convert.ToChar(i));
+    }*/
+}
+
+
+</ScriptText>
+</ScriptDefinition>

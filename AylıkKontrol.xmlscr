@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="AylıkKontrol" Enabled="true" Priority="0" ScriptName="AylıkKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 8.06.2023 09:58:54
+const_quantity = 500;
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptDate")
+	|| BaseObject.CurrentRow.Row.IsNull("UD_Unapproved")
+	|| BaseObject.CurrentRow.Row["UD_Unapproved"]==1
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 1
+	)
+		return null;
+	
+              tarih_ = Convert.ToDateTime(BaseObject.CurrentRow.Row["ReceiptDate"]);
+		
+              query ="select DATEPART(MM, CONVERT(datetime, \'"+tarih_.ToString()+"\' ,104)) as rec_month";
+              query +=" , DATEPART(YY, CONVERT(datetime, \'"+tarih_.ToString()+"\' ,104)) as rec_year";
+              query +=" , DATEPART(MM, CONVERT(datetime, GETDATE() ,104)) as real_month";
+              query +=" , DATEPART(YY, CONVERT(datetime, GETDATE() ,104)) as real_year";
+             //  MessageBox.Show(query);
+              dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt", query);
+
+	 	if(dt==null || dt.Rows.Count&lt;0)
+		return null;
+
+              rec_month_ = dt.Rows[0]["rec_month"].ToString();
+              rec_year_ = dt.Rows[0]["rec_year"].ToString();
+              real_month_ = dt.Rows[0]["real_month"].ToString();
+              real_year_ = dt.Rows[0]["real_year"].ToString();
+              
+            //  MessageBox.Show("Fiş Ay="+rec_month_+" Fiş Yıl="+rec_year_+" Gerçek Ay="+real_month_+" Gerçek Yıl="+real_year_);
+              
+              foreach (dr  in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("InventoryId is not null and Quantity is not null"))
+                     {
+                          query2 = "select sum(isnull(ORI.Quantity,0)) [tot_mik] from IM_OrderReceiptItem ORI with (nolock) where ORI.InventoryId=\'"+dr["InventoryId"].ToString()+"\' ";
+                          query2 += " and DATEPART(MM, CONVERT(datetime, ORI.ReceiptDate ,104)) = \'"+real_month_.ToString() +"\' ";
+                          query2 += " and DATEPART(YY, CONVERT(datetime, ORI.ReceiptDate ,104)) = \'"+real_year_.ToString() +"\' ";  
+                           // MessageBox.Show(query2);
+                            dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2", query2);
+                                   if(dt2==null || dt2.Rows.Count&lt;0)
+                                    return null;
+                     tot_mik_ =  Convert.ToDecimal(dt2.Rows[0]["tot_mik"]);
+                     tot_mik_ += Convert.ToDecimal(dr["Quantity"]);
+
+                     if(tot_mik_ &gt; global:const_quantity)
+                            {
+                                   sender.ShowMessage("Aylık Verebileceğiniz Maksimum Sipariş Adeti="+global:const_quantity.ToString());
+                                   ev.Cancel = true;
+                                   return null;              
+                            }
+                            
+                     }
+
+		
+}</ScriptText>
+</ScriptDefinition>

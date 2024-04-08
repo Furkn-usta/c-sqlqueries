@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Varyant2Kontrol" Enabled="true" Priority="0" ScriptName="Varyant2Kontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 29.08.2022 16:55:46
+	function OnBeforePost(sender,eventArg){
+		if(BaseObject!=null 
+	&amp;&amp; BaseObject.CurrentRow!=null
+	&amp;&amp; BaseObject.CurrentRow.Row!=null
+	&amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted 
+	&amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Detached)
+	{
+		foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null"))
+		{	
+	a="select isnull(i.Variant2TypeId,0) from IM_ReceiptItem iri with (nolock) left join IM_Item i with (nolock) on i.RecId=iri.InventoryId left join IM_Receipt r with (nolock) on r.RecId=iri.InventoryReceiptId left join IM_ReceiptItemVariant iriv with (nolock) on iriv.InventoryReceiptItemId=iri.RecId left join IM_ItemVariant iv with (nolock) on iriv.InventoryVariantId=iv.RecId left join IM_VariantItem vi with (nolock) on iv.Variant2Id=vi.RecId where i.InventoryType in(4,6,1) and isnull(i.InventoryType,6)=1 and i.RecId="+dr["InventoryId"].ToString();
+    b=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "b",a); 
+	if(b != null &amp;&amp; b.Rows.Count &gt; 0){	
+	if(b.Rows!=null || b.Rows.ToString().Trim()!="")
+			{
+			if(!dr.IsNull("ItemVariant2Code")==true &amp;&amp; string.IsNullOrEmpty(dr["ItemVariant2Code"].ToString())==true)
+				{
+					BaseObject.ShowMessage("Aksesuar Tipi Varyant2 Seçili Olduğundan Boş Kayıt Yapılamaz..! {src:Varyant2Kontrol}");
+					eventArg.Cancel=true;
+					return null;
+				}
+			}
+		 }
+	}	
+	}
+	}
+	
+
+</ScriptText>
+</ScriptDefinition>

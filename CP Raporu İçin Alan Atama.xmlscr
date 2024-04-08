@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CP Raporu İçin Alan Atama" Enabled="true" Priority="0" ScriptName="CP Raporu İçin Alan Atama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEn" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>/*
+11.03.2021 Sinan Bey - Critical Path Kontrol Raporu için model kartinda 
+kumaş reçetesinin kumaş kodunu ve adini açilan kullanici tanimli alanlara atan çalişma
+ */ 
+function OnBeforePost(sender,eventArg){
+	if(BaseObject!=null 
+	&amp;&amp; BaseObject.CurrentRow!=null 
+	&amp;&amp; BaseObject.CurrentRow.Row!=null
+	&amp;&amp; !BaseObject.CurrentRow.Row.IsNull("InventoryType")
+	&amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["InventoryType"])==100
+	&amp;&amp; !BaseObject.CurrentRow.Row.IsNull("CompanyId")
+	&amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["CompanyId"])==3 )
+	{
+		str="select InventoryCode, InventoryName from IM_Item with(nolock) where RecId=(select top 1 InventoryId from MA_RecipeItem with(nolock) where ItemType=1 and IsMaster=1 and OwnerInventoryId="+BaseObject.CurrentRow.Row["RecId"]+")";
+		dt= UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",str);
+		if(dt!=null &amp;&amp; dt.Rows.Count&gt;0)
+		{
+			BaseObject.CurrentRow.Row.SetField&lt;|String|&gt;("UD_KumasKodu",dt.Rows[0]["InventoryCode"].ToString());
+			BaseObject.CurrentRow.Row.SetField&lt;|String|&gt;("UD_KumasAdi",dt.Rows[0]["InventoryName"].ToString());
+		}
+	}
+}</ScriptText>
+</ScriptDefinition>

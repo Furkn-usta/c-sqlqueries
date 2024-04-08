@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FasonSevkOperasyonMiktarTasima" Enabled="true" Priority="0" ScriptName="FasonSevkOperasyonMiktarTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="BA" EntryDate="2023-09-07T00:00:00">
+      <Change>134 Fason irsaiyesinde özel alandan seçilen operasyona bağlı order üretim miktarlarını satırda açılan özel alana taşımaktadır.</Change>
+    </History>
+  </Histories>
+  <ScriptText>//Generated on 21.08.2023 16:30:04
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || BaseObject.CurrentRow.Row["ReceiptType"].ToString()!="134" || Convert.ToInt32(BaseObject.ActiveSession.Company.RecId)==/*Calışacak Şirketin RecId  */)
+		return null;
+		
+		
+
+	
+		foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("WorkOrderReceiptItemId is not null"))
+			{
+
+			if(BaseObject.CurrentRow.Row["UD_Process"].ToString()=="" || BaseObject.CurrentRow.Row.IsNull("UD_Process")) 
+						ri.SetField&lt;|string|&gt;("UD_EInvoiceItemExplanation",""); 
+
+	process="select RecId from MA_Process  where ProcessName=\'"+BaseObject.CurrentRow.Row["UD_Process"].ToString()+"\'and CompanyId="+BaseObject.ActiveSession.Company.RecId;
+			processdt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "processdt",process);
+		
+		if( processdt.Rows.Count&gt;0)
+		 	{
+
+	
+		Stext="";
+		Quantity="";
+query="SELECT  ";
+query+="LTRIM(RTRIM(m.n.value(\'.[1]\',\'nvarchar(4000)\'))) AS SText ";
+query+="FROM ";
+query+="( ";
+ query+=" SELECT WorkOrderNo, ";
+  query+="   CAST(\'&lt;XMLRoot&gt;&lt;RowData&gt;\' + REPLACE(SText,\'#@#\',\'&lt;/RowData&gt;&lt;RowData&gt;\') + \'&lt;/RowData&gt;&lt;/XMLRoot&gt;\' AS XML) AS x  ";
+ query+=" FROM MA_WorkOrder  ";
+query+=") t  ";
+query+="CROSS APPLY x.nodes(\'/XMLRoot/RowData\')m(n) ";
+query+="WHERE WorkOrderNo = \'"+ri["ManufacturingOrderNo"].ToString()+"\'";
+	dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",query);
+	if(dt!=null)
+	{
+query2= "  select  CAST(SUM(ISNULL(WPV.Quantity, 0)) AS DECIMAL(18, 2)) Quantity,isnull(WPV.SubNo,0) SubNo     ";
+query2+=" from MA_WorkOrderProductionVariant WPV with (nolock)";
+query2+=" left join MA_WorkOrderProduction WP with (nolock) on (WP.RecId = WPV.WorkOrderProductionId)";
+query2+=" where WP.WorkOrderItemId =\'"+ri["WorkOrderReceiptItemId"].ToString()+"\'";
+query2+=" and WP.ProcessId = \'"+processdt.Rows[0][0].ToString()+"\' ";
+query2+=" and InOut = 1";
+query2+=" and isnull(IsRepair,0) = 0";
+query2+=" group by isnull(WPV.SubNo,0),isnull(WP.CTextSubNo,0)";
+dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2",query2);
+	
+if(dt2!=null &amp;&amp; dt2.Rows.Count&gt;0 )
+	{query3=" select top 1 isnull(WPV.SubNo,0) SubNo ";
+query3+=" from MA_WorkOrderProductionVariant WPV with (nolock)";
+query3+=" left join MA_WorkOrderProduction WP with (nolock) on (WP.RecId = WPV.WorkOrderProductionId)";
+query3+=" where WP.WorkOrderItemId =\'"+ri["WorkOrderReceiptItemId"].ToString()+"\'";
+query3+=" and WP.ProcessId = \'"+processdt.Rows[0][0].ToString()+"\' ";
+query3+="and InOut = 1 ";
+query3+="and isnull(IsRepair,0) = 0 ";
+query3+="order by SubNo desc ";
+	dt3 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt3",query3);
+	
+	if(dt3!=null){
+		for(i=0; i&lt;Convert.ToInt32(dt3.Rows[0][0]);i++)
+		{Stext+="#@#"+dt.Rows[i][0].ToString();
+			Quantity+="#@#"+dt2.Rows[i][0].ToString();
+		}
+		ri.SetField&lt;|string|&gt;("UD_EInvoiceItemExplanation",Stext.ToString()+Quantity.ToString());
+}
+	}
+	else{
+			MessageBox.Show("Seçilen Operasyon ile ilgili bilgi bulunamadı");
+			ri.SetField&lt;|string|&gt;("UD_EInvoiceItemExplanation","");
+
+		}
+		}
+
+			 		}
+
+	}
+
+	
+}</ScriptText>
+</ScriptDefinition>

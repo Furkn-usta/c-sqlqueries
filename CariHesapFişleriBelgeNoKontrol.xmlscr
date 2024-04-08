@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CariHesapFişleriBelgeNoKontrol" Enabled="true" Priority="0" ScriptName="CariHesapFişleriBelgeNoKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" ObjectName="BankReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="BankReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 5.03.2024 17:55:13 CariHesapFişleriBelgeNoKontrol
+/*
+Cari Hesap Fişleri Listesinde tüm fiş tiplerinde çalışmaktadır. Başlıktaki belge numarası ve satırlardaki cari hesaba ait aynı belge no var ise kayıt yapılmasına izin vermeyecektir.
+*/
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("DocumentNo")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	)
+		return null;
+		
+		table_name = "FI_Receipt";
+		row_table_name = "FI_ReceiptItem";
+		if(BaseObject.Name.ToString() == "CurrentAccountReceiptEN")
+		{
+			table_name = "FI_Receipt";
+			row_table_name = "FI_ReceiptItem";
+		}
+		else if(BaseObject.ToString() == "BankReceiptEN")
+		{
+			table_name = "FI_BankReceipt";
+			row_table_name = "FI_BankReceiptItem";
+		}
+		
+		if(BaseObject.Name.ToString().Trim() == "BankReceiptEN")
+			return null;
+			
+		type_ = Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]);
+		belge_no = BaseObject.CurrentRow.Row["DocumentNo"].ToString() ;
+
+     sb = new StringBuilder();
+	 foreach(ri in BaseObject.Data.Tables[row_table_name].Select("CurrentAccountId is not null"))
+	    {
+			sb.Clear();	
+			sb.AppendLine("select COUNT(R.RecId) [rec] from "+table_name+" R with (nolock) ");
+			sb.AppendLine("left join "+row_table_name+" RI with (nolock)  on RI.CurrentAccountReceiptId=R.RecId");
+		    sb.AppendLine("where isnull(R.DocumentNo,\'\')=\'"+BaseObject.CurrentRow.Row["DocumentNo"].ToString()+"\' and R.ReceiptType=\'"+type_.ToString()+"\' and RI.CurrentAccountId=\'"+ri["CurrentAccountId"].ToString()+"\'");
+			MessageBox.Show(sb.ToString());
+			dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+   			                
+		     if(dt_sb != null || dt_sb.Rows.Count &gt;= 0)
+		        {
+		           mik_ = Convert.ToDecimal(dt_sb.Rows[0]["rec"]);
+		           if(Convert.ToInt32(mik_) &gt;= 1)
+		           {
+		           	sender.ShowMessage("Bu Belge Numarası Satırlarda Girilen Carilerde Farklı Fişlerde Mevcut. {scr:CariHesapFişleriBelgeNoKontrol}");
+		           	ev.Cancel = true;
+		           	return null;
+		           }
+		        }
+		}
+		return null;
+}</ScriptText>
+</ScriptDefinition>

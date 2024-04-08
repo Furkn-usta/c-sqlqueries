@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Üretim kontrol" Enabled="true" Priority="0" ScriptName="Uretimkontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="TWorkOrderEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnBeforePost" ObjectName="TWorkOrderEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 27.09.2022 11:20:58
+function OnBeforePost (sender ,eventArg){
+    if(BaseObject!=null 
+    &amp;&amp; BaseObject.CurrentRow!=null 
+    &amp;&amp; BaseObject.CurrentRow.Row!=null  
+    &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("IsSample"))
+    {
+    	if(eventArg.Column.ColumnName=="IsSample")
+		{
+		
+			if(BaseObject.CurrentRow.Row["IsSample"].ToString() == "True")
+			{	
+				BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("SpecialCode","Numune");	
+			}
+			else
+			{
+				BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("SpecialCode"," ");	
+			}
+		}
+    	
+    }
+
+}
+</ScriptText>
+</ScriptDefinition>

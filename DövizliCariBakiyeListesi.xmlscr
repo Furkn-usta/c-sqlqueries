@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DövizliCariBakiyeListesi" Enabled="true" Priority="0" ScriptName="DövizliCariBakiyeListesi">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 6.09.2023 15:26:51
+function OnBeforePost(sender,ev)
+{
+    if(BaseObject == null 	
+	|| BaseObject.CurrentRow == null 	
+	|| BaseObject.CurrentRow.Row == null)
+        return null;
+
+        if(BaseObject.CurrentRow.Row.IsNull("ForexId"))
+            BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_DovizKontrol",0);
+        if(!BaseObject.CurrentRow.Row.IsNull("ForexId"))
+            BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("UD_DovizKontrol",1);
+            
+	}</ScriptText>
+</ScriptDefinition>

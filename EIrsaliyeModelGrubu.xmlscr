@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="EIrsaliModelGrubu" Enabled="true" Priority="0" ScriptName="EIrsaliyeModelGrubu">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnBeforePost(sender,eventArg){
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null  /* &amp;&amp; BaseObject.IsNewRecord*/ &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") &amp;&amp; (Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==120 || Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==121) &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Detached){ 
+        sb = new StringBuilder();
+        isPackaging=false;
+        foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("InventoryId is not null and isnull(PackagingListItemId,0)&gt;0")){
+            sb.Clear();
+            if(dr.RowState!=DataRowState.Deleted &amp;&amp; dr.RowState!=DataRowState.Deleted){
+	            isPackaging=true;
+	            sb.AppendLine("select isnull(G.GroupCode,\'\') +\' ( \'+isnull(M.Explanation,\'\')+\' )\' Mal,isnull(PL.UD_KoliBundle,\'\') Bundle from IM_PackagingList PL with (nolock)");
+	            sb.AppendLine("left join IM_PackagingListItem PLI with (nolock) on PL.RecId=PLI.PackagingListId");
+	            sb.AppendLine("left join MA_WorkOrderItem WI with (nolock) on PLI.WorkOrderItemId=WI.RecId");
+	            sb.AppendLine("left join IM_Item I with (nolock) on I.RecId=PL.InventoryId");
+	            sb.AppendLine("left join IM_Mark M with (nolock) on I.MarkId=M.RecId");
+	            sb.AppendLine("left join IM_Group G with (nolock) on I.GroupId=G.RecId");
+	            sb.AppendLine("where PLI.RecId="+dr["PackagingListItemId"]+"");
+	            dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());	
+		        if(dt!=null &amp;&amp; dt.Rows.Count&gt;0){
+	                if(!dt.Rows[0].IsNull("Mal") &amp;&amp; dt.Rows[0]["Mal"].ToString().Trim()!="") 
+	                      dr.SetField&lt;|String|&gt;("UD_EInvoiceItemExplanation",dt.Rows[0]["Mal"].ToString());
+                    if(!dt.Rows[0].IsNull("Bundle") &amp;&amp; dt.Rows[0]["Bundle"].ToString().Trim()!="") 
+	                      dr.SetField&lt;|String|&gt;("Explanation",dt.Rows[0]["Bundle"].ToString());
+
+		        }
+		    } 
+        }
+        if(isPackaging==true)
+            BaseObject.CurrentRow.Row.SetField&lt;|String|&gt;("Explanation","ÜNL DIŞ TİCARET LTD. ŞTİ ADINA");  
+	}
+}
+ 
+ </ScriptText>
+</ScriptDefinition>

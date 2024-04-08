@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiKoliBölme" Enabled="true" Priority="0" ScriptName="ÇekiKoliBölme">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 23.08.2022 09:30:46
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || BaseObject.CurrentRow.Row.IsNull("PackagingType") || Convert.ToInt32(BaseObject.CurrentRow.Row["PackagingType"]) != 1)
+	return null;
+	
+		foreach(dr in BaseObject.Data.Tables["IM_PackagingListItem"].Select("RecId is not null"))
+ {
+ 	ustkoli=BaseObject.CurrentRow.Row["Dimension"];
+	satirkoli=dr["Dimension"];
+		
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat1_1", satirkoli.Substring(0,2));
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat2_2", satirkoli.Substring(3,2));
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat3_3", satirkoli.Substring(6,2));
+		}
+		
+		foreach(dr in BaseObject.Data.Tables["IM_PackagingList"].Select("RecId is not null"))
+ {
+ 	ustkoli=BaseObject.CurrentRow.Row["Dimension"];
+	satirkoli=dr["Dimension"];
+	
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat1", ustkoli.Substring(0,2));
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat2", ustkoli.Substring(3,2));		
+		dr.SetField&lt;|string|&gt;("UD_KoliEbat3", ustkoli.Substring(6,2));
+		
+		}
+	
+ }
+ 
+
+</ScriptText>
+</ScriptDefinition>

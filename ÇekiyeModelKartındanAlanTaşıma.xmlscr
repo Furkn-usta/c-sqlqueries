@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiyeModelKartındanAlanTaşıma" Enabled="true" Priority="0" ScriptName="ÇekiyeModelKartındanAlanTaşıma">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="FurkanUsta" EntryDate="2023-08-09T00:00:00">
+      <Change>Çekinin başlığından bulunan özel alana bağlı olan orderin içerisindeki özel alanı ve ordera bağlı olan modelin departmanı ve grubunu çekinin başlığındaki özel alana taşır.</Change>
+    </History>
+  </Histories>
+  <ScriptText>
+//Generated on 9.08.2023 09:33:00 ÇekiyeModelKartındanAlanTaşıma
+/*
+Çekinin başlığından bulunan özel alana bağlı olan orderin içerisindeki özel alanı ve ordera bağlı olan modelin departmanı ve grubunu çekinin başlığındaki özel alana taşır.
+*/
+
+function OnBeforePost (sender,ev)
+	{
+		if (BaseObject == null 
+        || BaseObject.CurrentRow == null 
+        || BaseObject.CurrentRow.Row == null
+        || BaseObject.CurrentRow.Row.IsNull("PackagingType")
+        || BaseObject.CurrentRow.Row.IsNull("RecId")
+        || BaseObject.CurrentRow.Row.IsNull("WorkOrderId")        
+        || Convert.ToInt32(BaseObject.CurrentRow.Row["PackagingType"]) != 1)
+			return null;
+			
+		/*
+	if(BaseObject.ActiveSession.User.RecId != 1)
+	return null;
+		*/
+		
+ 		   l_sb = new StringBuilder();
+           l_sb.Clear();
+           l_sb.AppendLine(" select isnull(ID.DepartmentCode,\'\') [dc] ,isnull(G.GroupName,\'\') [gn] ,isnull(WO.UD_KumasKalite,\'\') [kk] ");
+           l_sb.AppendLine(" from IM_PackagingList PL with (nolock)  ");
+           l_sb.AppendLine(" left join MA_WorkOrder WO with (nolock) on WO.RecId=PL.WorkOrderId ");
+           l_sb.AppendLine(" left join IM_Item I with (nolock) on I.RecId=WO.InventoryId ");
+           l_sb.AppendLine(" left join IM_Group G with (nolock) on G.RecId=I.GroupId ");
+           l_sb.AppendLine(" left join IM_ItemDepartment ID with (nolock) on ID.RecId=I.ItemDepartmentId ");
+           l_sb.AppendLine(" where PL.CompanyId=\'"+BaseObject.ActiveSession.Company.RecId.ToString()+"\' and PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\' and WO.RecId=\'"+BaseObject.CurrentRow.Row["WorkOrderId"].ToString()+"\'");
+		   
+		   l_dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "l_dt",l_sb.ToString());
+           
+           if(l_dt == null || l_dt.Rows.Count &lt;=0)
+            	return null;
+
+            dc_ = l_dt.Rows[0]["dc"].ToString();
+            gn_ = l_dt.Rows[0]["gn"].ToString();
+            kk_ = l_dt.Rows[0]["kk"].ToString();
+            string_name = dc_+" "+gn_+" "+kk_;
+            BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("UD_Desc",string_name.ToString());
+	}
+
+</ScriptText>
+</ScriptDefinition>

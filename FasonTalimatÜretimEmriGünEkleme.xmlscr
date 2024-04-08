@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FasonTalimatÜretimEmriGünEkleme" Enabled="true" Priority="0" ScriptName="FasonTalimatÜretimEmriGünEkleme">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="OrderReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 14.06.2023 15:53:50
+
+/*
+Fason Siparişinden oluşturulan üretim emirlerinin termin tarihlirini 7 gün açılan özel alandaki tarihi 28 gün arttırmaktadır.
+*/
+
+function OnAfterSucceededPost(sender, ev)
+{
+if( BaseObject == null 
+|| BaseObject.CurrentRow == null 
+|| BaseObject.CurrentRow.Row == null 
+|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) !=3
+)
+		return null;
+
+    	foreach(ori in BaseObject.Data.Tables["IM_OrderReceiptItem"].Select("WorkOrderReceiptItemId is not null and (UD_Check=0 or UD_Check is null)"))
+        {
+                query =" select isnull(WO.DeliveryDate,\'\') [termin_tarihi]";
+                query += " ,isnull(WO.UD_BoyaTerminTarihi,\'\') [boya_termin_tarihi]";
+                query += " from MA_WorkOrder WO with (nolock) where isnull(WO.RecId,0) = isnull((select isnull(WOI.WorkOrderId,0) from MA_WorkOrderItem WOI with (nolock) ";
+                query += " where isnull(WOI.RecId,0)=\'"+ori["WorkOrderReceiptItemId"].ToString()+"\'),0)";
+                dt_query_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_query_",query);
+                if(dt_query_==null || dt_query_.Rows.Count&lt;0)
+                    return null;
+                //MessageBox.Show(query);
+                termin_tarihi_ = Convert.ToDateTime(dt_query_.Rows[0]["termin_tarihi"]);
+                boya_termin_tarihi_ = Convert.ToDateTime(dt_query_.Rows[0]["boya_termin_tarihi"]);
+
+
+                updateSQL_ = "update MA_WorkOrder set DeliveryDate = DATEADD(DAY,7,CONVERT(datetime,\'"+termin_tarihi_.ToString()+"\',104)) , UD_BoyaTerminTarihi = DATEADD(DAY,28,CONVERT(datetime,\'"+boya_termin_tarihi_.ToString()+"\',104)) ";
+                updateSQL_ += " where RecId=(select WOI.WorkOrderId from MA_WorkOrderItem WOI with (nolock) where WOI.RecId=\'"+ori["WorkOrderReceiptItemId"].ToString()+"\')";
+                UtilityFunctions.SqlCustomNonQuery(BaseObject.Connection, BaseObject.Transaction, updateSQL_);
+                
+                update_row_SQL_ = "update IM_OrderReceiptItem set UD_Check=1 where RecId=\'"+ori["RecId"].ToString()+"\'";
+	  	        UtilityFunctions.SqlCustomNonQuery(BaseObject.Connection, BaseObject.Transaction, update_row_SQL_);
+
+        }
+
+        BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+}
+</ScriptText>
+</ScriptDefinition>

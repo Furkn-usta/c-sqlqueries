@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FasonIrsaliyeKontrol" Enabled="true" Priority="0" ScriptName="FasonIrsaliyeKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnBeforePost(sender,e)
+{
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; BaseObject.CurrentRow.Row["ReceiptType"].ToString()=="11" &amp;&amp; BaseObject.CurrentRow.Row["InWarehouseId"].ToString()=="1003")
+	{
+			if(BaseObject.CurrentRow.Row.IsNull("UD_Makine"))
+			{
+			BaseObject.ShowMessage("Makine No Zorunludur");
+			eventArg.Cancel=true;
+			return null;
+			}
+			if(BaseObject.CurrentRow.Row.IsNull("UD_Orgu"))
+			{
+			BaseObject.ShowMessage("Örgücü Zorunludur");
+			eventArg.Cancel=true;
+			return null;
+			}	
+				
+				foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("InventoryId is not null"))
+				{
+				if(dr.IsNull("PartyNo"))
+       			{
+       				BaseObject.ShowMessage("PartyNo Zorunludur");
+					eventArg.Cancel=true;
+					return null;
+       			}
+				}
+		
+	}
+}</ScriptText>
+</ScriptDefinition>

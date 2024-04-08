@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CekiOrderRenkTasima" Enabled="true" Priority="0" ScriptName="CekiOrderRenkTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="FurkanUsta" EntryDate="2023-06-21T00:00:00">
+      <Change>Order satırında açılan özel alandaki veriyi çeki listesinde açılan özel alana taşır.</Change>
+    </History>
+  </Histories>
+  <ScriptText>//Generated on 21.06.2023 09:48:54
+/*
+Order satırında açılan özel alandaki veriyi çeki listesinde açılan özel alana taşır.
+*/
+function OnBeforePost(sender,eventArg)
+{
+    if(BaseObject == null
+    || BaseObject.CurrentRow == null
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("PackagingType")
+    || Convert.ToInt32(BaseObject.CurrentRow.Row["PackagingType"]) != 1)
+        return null;
+
+    i = 0;
+    foreach (pli in BaseObject.Data.Tables["IM_PackagingListItem"].Select("WorkOrderItemId is not null"))
+    {
+         sb = new StringBuilder();
+         sb.Clear();
+         sb.AppendLine("select isnull(WOI.UD_MusteriRenkAdi,\'\') [varyant_name] from MA_WorkOrderItem WOI with (nolock) where WOI.RecId = \'"+pli["WorkOrderItemId"].ToString()+"\'");
+         dt=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt", sb.ToString());
+    
+            if(dt == null || dt.Rows.Count&lt;=0)
+                return null;
+                     
+        varyant_name_ = dt.Rows[i]["varyant_name"].ToString();    
+        pli.SetField&lt;|string|&gt;("UD_MusteriRenkAdi",varyant_name_.ToString());
+		   
+    }
+
+}</ScriptText>
+</ScriptDefinition>

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BelgeNoAtama" Enabled="true" Priority="0" ScriptName="BelgeNoAtama">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 18.08.2022 15:01:37
+
+function OnBeforePost(sender, ev)
+{
+tarih=BaseObject.CurrentRow.Row["ReceiptDate"].ToString();
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || BaseObject.CurrentRow.Row.IsNull("ControlCode")
+		|| Convert.ToInt32(BaseObject.CurrentRow.Row["ControlCode"]) != 1 || BaseObject.CurrentRow.Row["DocumentNo"].ToString() != "")
+		return null;
+		
+	tableName = "FI_Receipt";
+	if(BaseObject.Name == "InvoiceEN")
+		tableName = "IM_Invoice";
+	
+	q = "select isnull((select SUBSTRING(\'K01\',0,LEN(x.iNum)) + cast(cast(x.iNum as bigint) + 1 as varchar) from (SELECT top 1 SUBSTRING(DocumentNo,4,LEN(DocumentNo)) iNum FROM "+ tableName +" WHERE SUBSTRING(DocumentNo,0,4)=\'K01\' and CompanyId = " + BaseObject.ActiveSession.Company.RecId.ToString() + " ORDER BY DocumentNo desc) x), \'K01\' + "+tarih.Substring(6,4)+" + \'000001\') [no]";
+ //	q = "select isnull((select SUBSTRING(\'K01\',0,LEN(x.iNum)) + cast(cast(x.iNum as bigint) + 1 as varchar) from (SELECT top 1 SUBSTRING(DocumentNo,4,LEN(DocumentNo)) iNum FROM "+ tableName +" WHERE SUBSTRING(DocumentNo,0,4)=\'K01\' and CompanyId = " + BaseObject.ActiveSession.Company.RecId.ToString() + " ORDER BY DocumentNo desc) x), \'K01\'+SUBSTRING(cast(GETDATE() as nvarchar),8,4))+\'000001\' [no]";
+ 
+  	r = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "r", q);
+ MessageBox.Show(tarih.Substring(6,4));
+ 
+
+ 
+  	if(r == null || r.Rows.Count &lt;= 0)
+		return null;
+		
+	BaseObject.CurrentRow.Row.SetField&lt;|string|&gt;("DocumentNo", r.Rows[0]["no"].ToString());
+}</ScriptText>
+</ScriptDefinition>

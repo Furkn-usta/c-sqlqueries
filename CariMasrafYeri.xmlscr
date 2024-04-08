@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Cari Masraf Yeri" Enabled="false" Priority="0" ScriptName="CariMasrafYeri">
+  <Events>
+    <Event Enabled="true" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="OrderReceiptEN" />
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" ObjectName="ChequeReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="ChequeReceiptEN" />
+    <Event Enabled="true" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" ObjectName="BankReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="BankReceiptEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="Murat Y." EntryDate="2021-11-17T00:00:00">
+      <Change>UtilityFunctions.GetdataTableList fonksiyonuna gönderilen parametreler BaseObject.ActiveSession yerine direk Entity den çekilecek şekilde düzenlendi
+
+Sebep: Programi dondurma sorunu</Change>
+    </History>
+    <History EditedBy="Murat Y." EntryDate="2021-12-27T00:00:00">
+      <Change>Nextreme eksik kisimlar dahil edildi</Change>
+    </History>
+  </Histories>
+  <ScriptText>/*
+Tarih: 17.11.2021
+Talep Eden : Hasan Saritemur - Ünlü Tekstil
+
+Cari kartindan masraf yerini fiş detayina taşir (program tarafindan detaydaki bölümden satira otomatik aktarilir)
+*/
+
+function OnBeforePost(sender, ev)
+{
+	if( BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null)
+		return null;
+	
+	
+	if(BaseObject.Data.Tables.Contains("FI_ReceiptItem"))
+	{
+		foreach(ri in BaseObject.Data.Tables["FI_ReceiptItem"].Select("CurrentAccountId IS NOT NULL"))
+		{
+			r3=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "r2", "SELECT RecId FROM FI_CostCenter WHERE CompanyId="+ BaseObject.ActiveSession.Company.RecId.ToString() + " AND CostCenterCode = (SELECT UD_MasrafYeri FROM FI_Account WHERE RecId=" + ri["CurrentAccountId"].ToString() + ")");
+		
+			if(r3 == null || r3.Rows.Count &lt;= 0)
+				return null;
+			
+			ri.SetField&lt;|int|&gt;("CostCenterId", Convert.ToInt32(r3.Rows[0]["RecId"]));
+		}
+	}
+	
+	if(BaseObject.CurrentRow.Row.IsNull("CurrentAccountId"))
+		return null; 
+	
+	r2=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "r2", "SELECT RecId FROM FI_CostCenter WHERE CompanyId="+ BaseObject.ActiveSession.Company.RecId.ToString() + " AND CostCenterCode=(SELECT UD_MasrafYeri FROM FI_Account WHERE RecId=" + BaseObject.CurrentRow.Row["CurrentAccountId"].ToString()+")");
+	
+	if(r2 == null || r2.Rows.Count &lt;= 0)
+		return null;
+	
+	BaseObject.CurrentRow.Row.SetField&lt;|int|&gt;("CostCenterId", Convert.ToInt32(r2.Rows[0]["RecId"]));
+	
+}</ScriptText>
+</ScriptDefinition>

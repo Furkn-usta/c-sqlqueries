@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DatadanDatayaKopyalama" Enabled="true" Priority="0" ScriptName="DatadanDatayaKopyalama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 24.05.2023 16:46:15
+function OnAfterSucceededPost (sender,eventArg){
+if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("CurrentAccountId")
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+    || BaseObject.CurrentRow.Row.IsNull("DocumentNo"))
+	return null;
+	
+    fi_account_rec = Convert.ToInt32(BaseObject.CurrentRow.Row["CurrentAccountId"]);
+    rec_type = Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]);
+	source_document_no = BaseObject.CurrentRow.Row["DocumentNo"].ToString();
+
+    fi_account_source_query = "use PlatinExtreme";
+	fi_account_source_query += " select top 1 isnull(F.TaxNo,\'\') [s_tax] from FI_Account F with (nolock) where F.RecId=\'"+fi_account_rec+"\' and F.CompanyId="+BaseObject.ActiveSession.Company.RecId;
+    dt_fi_account_source = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_fi_account_source",fi_account_source_query);
+	        //MessageBox.Show(fi_account_source_query.ToString());
+	if(dt_fi_account_source==null || dt_fi_account_source.Rows.Count&lt;0)
+		return null;
+    source_tax_ = dt_fi_account_source.Rows[0]["s_tax"].ToString();
+
+
+	fi_account_target_query = "use EzeExtreme";
+	fi_account_target_query += " select top 1 isnull(FF.RecId,\'\') [t_rec] from FI_Account FF with (nolock) where isnull(FF.TaxNo,\'\')=\'"+source_tax_+"\' ";
+	dt_fi_account_target = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_fi_account_target",fi_account_target_query);
+		    //MessageBox.Show(fi_account_target_query.ToString());
+	if(dt_fi_account_target==null || dt_fi_account_target.Rows.Count&lt;0)
+		return null;
+	
+	t_fi_rec_ = Convert.ToInt32(dt_fi_account_target.Rows[0]["t_rec"]);
+    /* */
+
+    target_r_receipt_no =" use EzeExtreme";
+    target_r_receipt_no += " select case ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=8 then cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=7 then \'0\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += "  when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=6 then \'00\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += "  when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=5 then \'000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += "  when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=4 then \'0000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar) ";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=3 then \'00000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  ";
+    target_r_receipt_no += "  when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=2 then \'000000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)";
+    target_r_receipt_no += " when len(cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar))=1 then \'0000000\'+cast(cast(max(R.ReceiptNo) as decimal)+1 as nvarchar)  end [fis_no] ";
+    target_r_receipt_no += "from IM_Receipt R with (nolock) where R.ReceiptType="+rec_type;
+    
+    dt_r_receipt_no_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_r_receipt_no_",target_r_receipt_no);
+	if(dt_r_receipt_no_==null || dt_r_receipt_no_.Rows.Count&lt;0)
+		return null;
+    
+	fis_no = dt_r_receipt_no_.Rows[0]["fis_no"].ToString();
+
+    
+
+	target_insert_query = "use EzeExtreme ";
+	target_insert_query += " insert into IM_Receipt (CompanyId,ReceiptType,ReceiptNo,ReceiptDate,CurrentAccountId,OutWarehouseId,DocumentNo) ";
+	target_insert_query += " values (1,"+rec_type+",\'"+fis_no+"\',Getdate(),"+t_fi_rec_+",1,\'"+source_document_no+"\')";
+	dt_target_insert_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_target_insert_",target_insert_query);
+	if(dt_target_insert_==null || dt_target_insert_.Rows.Count&lt;0)
+		return null;
+    
+            //MessageBox.Show(target_insert_query);
+  
+
+    inserted_target_rec= "use EzeExtreme  ";
+    inserted_target_rec += " select R.RecId [rec_] from IM_Receipt R with (nolock) where R.ReceiptType="+rec_type+" and R.ReceiptNo=\'"+fis_no+"\'";
+    dt_target_insert_rec_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_target_insert_rec_",inserted_target_rec);
+	if(dt_target_insert_rec_==null || dt_target_insert_rec_.Rows.Count&lt;0)
+		return null;
+
+    inserted_rec = Convert.ToInt32(dt_target_insert_rec_.Rows[0]["rec_"]);
+
+
+		foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and InventoryId is not null") )
+		{
+            source_row_query = " select isnull((select isnull(VI.ItemName,\'\') from IM_VariantItem VI with (nolock) where VI.RecId=(select isnull(IV.Variant1Id,0) from IM_ItemVariant IV with (nolock) where IV.RecId=RIV.InventoryVariantId)),\'\') [varyant] ";
+            source_row_query += " ,isnull(INV.AccessCode,\'\') [accode] from  IM_Receipt R with (nolock) ";
+            source_row_query += " left join IM_ReceiptItem RI with (nolock) on RI.InventoryReceiptId=R.RecId";
+            source_row_query += " left join IM_ReceiptItemVariant RIV with (nolock) on RIV.InventoryReceiptItemId=RI.RecId";
+            source_row_query += " left join IM_Item INV with (nolock) on INV.RecId=RI.InventoryId";
+            source_row_query += " where RI.RecId="+Convert.ToInt32(dr["RecId"]);
+            source_row_query += " and R.ReceiptType=\'"+rec_type.ToString()+"\'";
+            source_row_query += " and RI.InventoryId=\'"+Convert.ToInt32(dr["InventoryId"])+"\'";
+            dt_source_row_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_source_row_",source_row_query);
+            if(dt_source_row_==null || dt_source_row_.Rows.Count&lt;0)
+                return null;
+            //MessageBox.Show(source_row_query.ToString());
+            source_varyant_ = dt_source_row_.Rows[0]["varyant"].ToString();
+            source_accode_ = dt_source_row_.Rows[0]["accode"].ToString();
+
+            if(source_varyant_.ToString() =="Ham - Boş" &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {
+                insert_row_target =  "use EzeExtreme ";
+                insert_row_target += " insert into IM_ReceiptItem (InventoryReceiptId,InventoryId,ReceiptType,ItemType)";
+                insert_row_target += " values ("+inserted_rec+",32,"+rec_type+",1)";
+                dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+
+            }
+
+            if(source_varyant_.ToString() !="Ham - Boş" &amp;&amp;  source_accode_.ToString() == "FABRIC")
+            {
+                insert_row_target =  "use EzeExtreme ";
+                insert_row_target += " insert into IM_ReceiptItem (InventoryReceiptId,InventoryId,ReceiptType,ItemType)";
+                insert_row_target += " values ("+inserted_rec+",33,"+rec_type+",1)";
+                 dt_insert_row_target_ = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_insert_row_target_",insert_row_target);
+                if(dt_insert_row_target_==null || dt_insert_row_target_.Rows.Count&lt;0)
+                    return null;
+
+            }
+        }
+}
+</ScriptText>
+</ScriptDefinition>

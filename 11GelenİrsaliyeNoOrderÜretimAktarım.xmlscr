@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="11GelenİrsaliyeNoOrderÜretimAktarım" Enabled="true" Priority="0" ScriptName="11GelenİrsaliyeNoOrderÜretimAktarım">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 4.12.2023 11:42:08 11GelenİrsaliyeNoOrderÜretimAktarım
+
+function OnAfterSucceededPost(sender, e)
+{       
+
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("RecId")
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	 )
+	return null;
+	if(Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 11)
+	{
+	foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null"))
+	sb = new StringBuilder(); 
+	{
+	sb.Clear();
+	sb.AppendLine("SELECT  isnull(Y.WorkOrderProductionId,0) WorkOrderProductionId	,isnull(Y.[İrsaliye No],\'\') [IrsaliyeNo]");
+	sb.AppendLine(",(select WOP.WorkOrderItemId from MA_WorkOrderProduction WOP with (nolock) where WOP.RecId=Y.WorkOrderProductionId ) WorkOrderItemId");
+	sb.AppendLine("FROM    (        SELECT            (");
+	sb.AppendLine("SELECT ISNULL(RI.WorkOrderProductionId, 0) AS WorkOrderProductionId ");
+	sb.AppendLine("FROM IM_ReceiptItem RI WITH (NOLOCK)");
+	sb.AppendLine("WHERE RI.ReceiptType = 134 AND RI.RecId = X.ExplanationCode");
+	sb.AppendLine(") AS WorkOrderProductionId,X.[İrsaliye No],            X.ExplanationCode");
+	sb.AppendLine("FROM            (");
+	sb.AppendLine("  SELECT ISNULL(RI.ExplanationCode, \'\') AS ExplanationCode ,isnull(R.ReceiptNo,\'\') [İrsaliye No]");
+	sb.AppendLine("FROM IM_Receipt R WITH (NOLOCK)");
+	sb.AppendLine(" LEFT JOIN IM_ReceiptItem RI WITH (NOLOCK) ON RI.InventoryReceiptId = R.RecId");
+	sb.AppendLine("WHERE R.ReceiptType = 11 AND R.RecId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\'            ) X    ) Y;");
+
+//	MessageBox.Show(sb.ToString());
+
+	dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());	
+	
+	if(dt == null || dt.Rows.Count &lt;=0)
+       return null;
+       rec_ = dt.Rows[0]["WorkOrderItemId"].ToString();
+ 	   irsaliye_no = dt.Rows[0]["IrsaliyeNo"].ToString();  
+ 	   OnUpdate(rec_,irsaliye_no);
+ 	  /* */
+    }
+    }
+}	
+
+
+function OnUpdate(rec,irs_no)
+{
+//ProcessId = ütü paket recid
+	upd = "update MA_WorkOrderProduction set Explanation=\'"+irs_no+"\' where WorkOrderItemId=\'"+rec.ToString()+"\' and ProcessId=10";
+		MessageBox.Show(upd.ToString());
+//	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, null, upd);
+}</ScriptText>
+</ScriptDefinition>

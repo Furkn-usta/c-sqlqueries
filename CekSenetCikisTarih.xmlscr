@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CekSenetCikisTarih" Enabled="true" Priority="0" ScriptName="CekSenetCikisTarih">
+  <Events>
+    <Event Enabled="true" ObjectName="ChequeEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="ChequeEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 18.12.2023 11:21:07 CekSenetCikisTarih
+function OnAfterSucceededPost(sender,eventArg)
+{
+ if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("RecId"))
+    return null;
+	   qry = new StringBuilder();
+	   qry.Clear();
+	   qry.AppendLine(" Update FI_Cheque set UD_Date = isnull(CR.ReceiptDate,\'\') from FI_Cheque as CC with (nolock)   "); 
+		qry.AppendLine(" left join FI_ChequeReceiptItem CRI with (nolock) on CRI.ChequeId=CC.RecId ");
+		qry.AppendLine(" left join FI_ChequeReceipt CR with (nolock) on CRI.ChequeReceiptId=CR.RecId ");
+		qry.AppendLine("  where isnull(CR.ReceiptType,0) in (3,4,5) and CRI.ChequeId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\'");
+   	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,qry.ToString());
+   //	BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+}
+
+/*
+
+	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection,null,"update IM_Item set InventoryType=4 where RecId="+Rec);
+							BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);
+
+
+*/</ScriptText>
+</ScriptDefinition>

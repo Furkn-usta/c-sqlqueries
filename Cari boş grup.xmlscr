@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Cari boş grup" Enabled="false" Priority="0" ScriptName="Cari boş grup">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="alper" EntryDate="2015-10-07T00:00:00">
+      <Change />
+    </History>
+  </Histories>
+  <ScriptText>function OnBeforePost(sender, eventArg)
+{
+	if(BaseObject.CurrentRow.Row["IdNo"]!=null &amp;&amp; !String.IsNullOrEmpty(BaseObject.CurrentRow.Row["IdNo"].ToString()))
+	{
+		if(BaseObject.CurrentRow.Row["IdNo"].ToString().Length!=11)
+		{
+			BaseObject.ShowMessage("Tc Kimlik No 11 Hane Olmali");
+      		eventArg.Cancel = true;
+		}
+	} 
+	if(BaseObject.CurrentRow.Row["TaxNo"]!=null &amp;&amp; !String.IsNullOrEmpty(BaseObject.CurrentRow.Row["TaxNo"].ToString()))
+	{
+		if(BaseObject.CurrentRow.Row["TaxNo"].ToString().Length!=10)
+		{
+			BaseObject.ShowMessage("Vergi No 10 Hane Olmali");
+      		eventArg.Cancel = true;
+		}
+	}
+}
+
+
+
+</ScriptText>
+</ScriptDefinition>

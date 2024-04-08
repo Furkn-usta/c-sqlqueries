@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Araç Taşiyici Boş Geçmeme" Enabled="true" Priority="0" ScriptName="Araç Taşiyici Boş Geçmeme">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnBeforePost(sender,eventArg){
+ 
+  if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; ( System.Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==6 || System.Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==120 || System.Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==134 || System.Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"].ToString())==125 )   )
+  {
+
+    if  (BaseObject.CurrentRow.Row.IsNull("VehicleId") || BaseObject.CurrentRow.Row["VehicleId"].ToString()=="")
+        {  BaseObject.ShowMessage("Araç No Boş");
+           eventArg.Cancel=true;
+		   return null;
+        }
+    if(BaseObject.CurrentRow.Row.IsNull("TransporterId") || BaseObject.CurrentRow.Row["TransporterId"].ToString()=="")
+        {  BaseObject.ShowMessage("Nakliyeci Boş");
+            eventArg.Cancel=true;
+		    return null;
+        }
+        if  (BaseObject.CurrentRow.Row.IsNull("UD_IrsaliyeFirma") || BaseObject.CurrentRow.Row["UD_IrsaliyeFirma"].ToString()=="")
+        {  BaseObject.ShowMessage("İrsaliye Firma Boş");
+           eventArg.Cancel=true;
+		   return null;
+        }
+
+      }
+  	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; BaseObject.CurrentRow.Row["ReceiptType"].ToString()=="6" &amp;&amp; BaseObject.CurrentRow.Row["InWarehouseId"].ToString()=="85")
+	{					
+				foreach(dr in BaseObject.Data.Tables["IM_ReceiptItem"].Select("InventoryId is not null"))
+				{
+				if(dr.IsNull("PartyNo"))
+       			{
+       				BaseObject.ShowMessage("PartyNo Zorunludur");
+					eventArg.Cancel=true;
+					return null;
+       			}
+       				if(dr.IsNull("UD_OrgucuMakineNo"))
+       			{
+       				BaseObject.ShowMessage("Makine No Zorunludur");
+					eventArg.Cancel=true;
+					return null;
+       			}
+				}
+		
+	}
+
+}</ScriptText>
+</ScriptDefinition>

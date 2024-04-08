@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Analiz Küp Renk" Enabled="true" Priority="0" ScriptName="Analiz Küp Renk">
+  <Events>
+    <Event Enabled="true" ObjectName="CubeVM" />
+    <Event Enabled="true" EventName="ViewLoaded" FunctionName="OnViewLoaded" ObjectName="CubeVM" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 17.10.2022 11:27:15
+function OnViewLoaded (sender , eventArg)
+{
+   pGrid = BaseObject.FindControl("pivotGridControl1");
+   if(pGrid!= null)  
+   {     
+		pGrid.CellBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#b2dfdb"));
+		pGrid.CellTotalBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#b2dfdb"));
+   }
+}
+</ScriptText>
+</ScriptDefinition>

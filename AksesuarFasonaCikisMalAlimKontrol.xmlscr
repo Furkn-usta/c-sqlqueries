@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="AksesuarFasonaCikisMalAlimKontrol" Enabled="true" Priority="0" ScriptName="AksesuarFasonaCikisMalAlimKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 2.04.2024 11:24:28 AksesuarFasonaCikisMalAlimKontrol
+function OnBeforePost(sender,ev)
+{
+    if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+    || Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 134
+     )
+        return null;
+
+    if(BaseObject.ActiveSession.User.RecId != 1)
+        return null;
+    
+    sb = new StringBuilder();
+    compyId = BaseObject.ActiveSession.Company.RecId;
+    
+     foreach(ia in BaseObject.Data.Tables["IM_ItemAllocation"].Select("InventoryReceiptItemId is not null and WorkOrderItemId is not null"))
+                {
+                 foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("RecId is not null and InventoryId is not null"))
+                    {
+                        if(Convert.ToInt32(ri["RecId"]) == Convert.ToInt32(ia["InventoryReceiptItemId"]))
+                        {
+                                sb.Clear();
+                                sb.AppendLine(" select COUNT(I.RecId) [cnt] from IM_ItemAllocation IA with (nolock)");
+                                sb.AppendLine(" left join MA_WorkOrderItem WOI with (nolock) on IA.WorkOrderItemId=WOI.RecId");
+                                sb.AppendLine(" left join MA_WorkOrder WO with (nolock) on  WO.RecId=WOI.WorkOrderId");
+                                sb.AppendLine(" left join IM_ReceiptItem RI with (nolock) on RI.RecId=IA.InventoryReceiptItemId");
+                                sb.AppendLine(" left join IM_Receipt R with (nolock) on R.RecId=RI.InventoryReceiptId");
+                                sb.AppendLine(" left join IM_Item I with (nolock) on I.RecId=RI.InventoryId");
+                                sb.AppendLine(" where WOI.RecId=\'"+ia["WorkOrderItemId"].ToString()+"\'");
+                                sb.AppendLine(" and WO.CompanyId=\'"+compyId.ToString()+"\'");
+                                sb.AppendLine(" and R.ReceiptType=1");
+                                sb.AppendLine(" and I.RecId=\'"+ri["InventoryId"].ToString()+"\'");
+                                sb.AppendLine(" and I.AccessCode=\'TRIM\'");
+                               // MessageBox.Show(sb.ToString());
+                                dt_sb = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_sb",sb.ToString());
+                                if(dt_sb != null || dt_sb.Rows.Count &gt; 0)
+                                    {
+                                         count_ = Convert.ToInt32(dt_sb.Rows[0]["cnt"]);
+                                         if(Convert.ToInt32(count_) &lt;=0)
+                                         {
+                                            sender.ShowMessage("Mal Alım Girişi Olmadığından Dolayı Kayıt Gerçekleştirilemez..{scr:AksesuarFasonaCikisMalAlimKontrol}");
+                                            ev.Cancel=true;
+                                            return null;
+                                         }
+                                    }
+                        }
+                    }   
+                }
+	
+}
+</ScriptText>
+</ScriptDefinition>

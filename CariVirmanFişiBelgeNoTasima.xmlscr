@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="CariVirmanFişiBelgeNoTasima" Enabled="true" Priority="0" ScriptName="CariVirmanFişiBelgeNoTasima">
+  <Events>
+    <Event Enabled="true" ObjectName="CurrentAccountReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="CurrentAccountReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 21.05.2020 11:16:29
+function OnBeforePost(sender,eventArg){
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Detached &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") &amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==5 &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("DocumentNo") &amp;&amp; BaseObject.CurrentRow.Row["DocumentNo"].ToString()!="" ){
+        foreach(dr in BaseObject.Data.Tables["FI_ReceiptItem"].Rows){
+            if(dr.RowState!=DataRowState.Deleted &amp;&amp; dr.RowState!=DataRowState.Detached )
+                  dr.SetField&lt;|String|&gt;("DocumentNo",BaseObject.CurrentRow.Row["DocumentNo"].ToString());
+         
+        } 
+	}
+}</ScriptText>
+</ScriptDefinition>

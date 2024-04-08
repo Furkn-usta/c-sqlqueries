@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekiKoliHesap" Enabled="true" Priority="0" ScriptName="ÇekiKoliHesap">
+  <Events>
+    <Event Enabled="true" ObjectName="PackagingListEN" />
+    <Event Enabled="true" EventName="AfterPost" FunctionName="OnAfterPost" ObjectName="PackagingListEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 28.11.2023 10:28:30 ÇekiKoliHesap
+
+function OnAfterPost(sender, e)
+{       
+
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("RecId")
+	 )
+	return null;
+	if(BaseObject.ActiveSession.User.RecId != 1)
+		return null;
+	
+	foreach(dr in BaseObject.Data.Tables["IM_PackagingListItem"].Select("RecId is not null"))
+	sb = new StringBuilder(); 
+	{
+	sb.Clear();
+	sb.AppendLine("select * from (");
+	sb.AppendLine("select count(PLI.RecId) PLI_Count ");
+	sb.AppendLine(",isnull(PLI.PackagingWeight,0) PackagingWeight");
+	sb.AppendLine(",isnull(PLI.StyleWeight,0) StyleWeight");
+	sb.AppendLine(",isnull(PLI.WorkOrderItemId,0)  WorkOrderItemId");
+	sb.AppendLine("from IM_PackagingList PL with (nolock)");
+	sb.AppendLine("left join IM_PackagingListItem PLI with (nolock) on PLI.PackagingListId=PL.RecId");
+	sb.AppendLine("where PL.RecId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\' and PLI.EndPackaging=PLI.StartPackaging");
+	sb.AppendLine("group by PLI.StartPackaging,PLI.EndPackaging,PLI.PackagingWeight,PLI.StyleWeight,PLI.WorkOrderItemId");
+	sb.AppendLine(")X");
+	sb.AppendLine("outer apply (select P.RecId from IM_PackagingListItem P with (nolock) where P.PackagingListId=\'"+BaseObject.CurrentRow.Row["RecId"].ToString()+"\' and P.WorkOrderItemId=X.WorkOrderItemId)Y");
+	//MessageBox.Show(sb.ToString());
+	dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());	
+	
+	if(dt == null || dt.Rows.Count &lt;=0)
+       return null;
+ 		//MessageBox.Show(dt.Rows.Count.ToString());
+ 		for (i=0;i&lt;dt.Rows.Count;i++)
+ 		{
+ 		adet_ = dt.Rows[i]["PLI_Count"].ToString();
+ 		koliagirlik_ = dt.Rows[i]["PackagingWeight"].ToString();
+ 		modelagirlik_ = dt.Rows[i]["StyleWeight"].ToString();
+ 		ordersatirrec_ = dt.Rows[i]["WorkOrderItemId"].ToString();
+ 		cekisatirrec_ = dt.Rows[i]["RecId"].ToString();
+ 		 		
+ 	//	MessageBox.Show(adet_+"~~"+koliagirlik_+"~~"+modelagirlik_+"~~"+ordersatirrec_+"~~"+cekisatirrec_);
+     update_packlistitem_row(cekisatirrec_,adet_,koliagirlik_,modelagirlik_);
+ 		}	
+ 	}
+    
+ }	
+ 
+function update_packlistitem_row(recId,row_count,pack_weig,style_weig)
+{
+	//query = "update IM_ItemAttachment set Explanation =	\'"+samplename.ToString()+"\' where RecId = \'"+rec.ToString()+"\'";
+//	MessageBox.Show("test");
+  if(row_count.ToString().Trim() != "" &amp;&amp; row_count.ToString().Trim != "0")
+    {
+      koli_ = Convert.ToDecimal(pack_weig) / Convert.ToDecimal(row_count);
+      model_ = Convert.ToDecimal(style_weig) / Convert.ToDecimal(row_count);
+      update_query = "update IM_PackagingListItem set PackagingWeight=\'"+koli_.ToString().Replace(",",".")+"\' ,StyleWeight=\'"+model_.ToString().Replace(",",".")+"\' where RecId=\'"+recId.ToString()+"\'";
+    //  MessageBox.Show(update_query.ToString());
+     	
+      dt=UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",update_query);
+            if(dt == null || dt.Rows.Count &lt;= 0)
+              return null; 
+      /* */
+    }
+}		</ScriptText>
+</ScriptDefinition>

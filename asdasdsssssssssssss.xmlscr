@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FaturaFisiVadeKontrol" Enabled="true" Priority="0" ScriptName="FaturaFisiVadeKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 6.10.2022 11:39:45
+function OnBeforePost(sender, ev)
+{
+if(BaseObject != null 
+   &amp;&amp; BaseObject.CurrentRow != null 
+   &amp;&amp; BaseObject.CurrentRow.Row != null
+   /*&amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") // Alanları bir herhangi bir şeyle kıyas yapmadan önce null olmadığını kontrol edersen hata almazsın ve cast işlemlerini null kontrolü sonrası yaparsan hata almazsın
+     &amp;&amp; Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])==120 // Buradan fiş tipi de koyabilirsin.*/ 
+   &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptDate"))
+    {	
+    fis = BaseObject.CurrentRow.Row["TermDate"];
+    fis2=fis.AddDays(1);
+	date = Convert.ToDateTime(fis2);
+    fis2 = date.ToString("yyyy-MM-dd");
+  
+    	BaseObject.ShowMessage(fis2.ToString()); 
+
+   if(BaseObject.IsNewRecord)
+   {
+	BaseObject.ShowMessage(BaseObject.CurrentRow.Row["RecId"].ToString()); 
+			x2 ="update IM_Invoice set TermDate=\'"+fis2+"\' where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+			UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,x2);
+          	BaseObject.ShowMessage(x2.ToString()); 
+
+
+   }
+       else
+    {
+		if(string.IsNullOrWhiteSpace(BaseObject.CurrentRow.Row["TermDate"].ToString()) || BaseObject.CurrentRow.Row.IsNull("TermDate") &amp;&amp; BaseObject.CurrentRow.Row.IsNull("ReceiptDate")-BaseObject.CurrentRow.Row.IsNull("TermDate")==0)
+		{	BaseObject.ShowMessage("5"); 
+
+			BaseObject.ShowMessage("Vade Gününü Giriniz!  {scr:FaturaFisiVadeKontrol}"); //scr kısmına script adını veriyoruz ki bulması kolay olsun.
+			ev.Cancel = true;
+			return null;
+		}
+		if(!BaseObject.CurrentRow.Row.IsNull("TermDate") &amp;&amp; Convert.ToDateTime(BaseObject.CurrentRow.Row["ReceiptDate"])&gt;Convert.ToDateTime(BaseObject.CurrentRow.Row["TermDate"]))
+		{	BaseObject.ShowMessage("6"); 
+
+			BaseObject.ShowMessage("Vade Tarihi Fiş Tarihinden Küçük olamaz!{ scr:FaturaFisiVadeKontrol}");
+			ev.Cancel = true;
+			return null;
+		}
+	}
+  
+	}
+	
+}</ScriptText>
+</ScriptDefinition>

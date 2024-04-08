@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DatadanDatayaKopyalama" Enabled="true" Priority="0" ScriptName="DatadanDatayaKopyalama">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 24.05.2023 16:46:15
+function OnAfterSucceededPost (sender,eventArg){
+if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null)
+	return null;
+	
+	acc_name = BaseObject.CurrentRow.Row["Explanation"].ToString();
+	
+	
+	acc_rec_query = "use EzeExtreme";
+	acc_rec_query += " select top 1 isnull(FI.RecId,0) from FI_Account FI with (nolock) where FI.CurrentAccountCode=\'"+acc_name+"\' ";
+	dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",acc_rec_query);
+	
+	if(dt==null || dt.Rows.Count&lt;0)
+		return null;
+	
+	acc_rec = Convert.ToInt32(dt.Rows[0][0]);
+//	MessageBox.Show(acc_rec.ToString());
+	query = "use EzeExtreme ";
+	query += " insert into IM_Invoice (CompanyId,ReceiptType,ReceiptNo,ReceiptDate,CurrentAccountId) ";
+	query += " values (1,120,\'test\',Getdate(),"+acc_rec+")";
+	dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2",query);
+	if(dt2==null || dt2.Rows.Count&lt;0)
+		return null;
+	MessageBox.Show(query);
+	
+}</ScriptText>
+</ScriptDefinition>

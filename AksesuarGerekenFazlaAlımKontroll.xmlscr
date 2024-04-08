@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="AksesuarGerekenFazlaAlımKontrol" Enabled="true" Priority="0" ScriptName="AksesuarGerekenFazlaAlımKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories>
+    <History EditedBy="FurkanUsta" EntryDate="2023-04-24T00:00:00">
+      <Change>Mal alım irsaliyesinde tahsis üzerinden gerekenin %3ünden fazla alım gerçekleştirilemesin diye renk ve beden kontrol edilerek fazla sipariş edilirse kayıt edilmesine izin verilmez.</Change>
+    </History>
+  </Histories>
+  <ScriptText>//Generated on 02.02.2023 10:23:45
+/*
+Mal alım irsaliyesinde tahsis üzerinden gerekenin %3ünden fazla alım gerçekleştirilemesin diye renk ve beden kontrol edilerek fazla sipariş edilirse kayıt edilmesine izin verilmez.
+*/
+function OnBeforePost(sender,ev)
+{		
+er_kod="";
+	if (BaseObject != null 
+	&amp;&amp; BaseObject.CurrentRow != null 
+	&amp;&amp; BaseObject.CurrentRow.Row != null 
+	&amp;&amp; BaseObject.CurrentRow.Row["AccessCode"].ToString()=="TRIM"
+	&amp;&amp; System.Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"]) == 1)
+	{
+if(BaseObject.CurrentRow.Row["AccessCode"].ToString()=="TRIM")
+	er_kod="4";
+	  
+	        
+		foreach(dr in BaseObject.Data.Tables["IM_ItemAllocation"].Select("InventoryReceiptItemId is not null and WorkOrderItemId is not null and InventoryId is not null and RequirementGroup is not null and ItemVariant1Code is not null and ItemVariant2Code is not null"))
+		{ 
+			
+                varyant_id = " select IV.RecId [rec]  from IM_ItemVariant IV with (nolock)";
+				varyant_id += " where IV.InventoryId="+Convert.ToInt32(dr["InventoryId"])+" and IV.Variant1Id =";
+				varyant_id += "(select VI.RecId  from IM_VariantItem VI with (nolock) where VI.ItemCode = \'"+dr["ItemVariant1Code"].ToString()+"\')"; 
+				dt_varyant = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_varyant",varyant_id );
+					
+					
+					 	if(dt_varyant==null || dt_varyant.Rows.Count&lt;=0)
+							return null;
+					/*
+       MessageBox.Show("V1Rec= "+dt_varyant.Rows[0]["rec"].ToString()); 
+                          
+		MessageBox.Show("V1= "+dr["ItemVariant1Code"].ToString());
+		MessageBox.Show("V2= "+dr["ItemVariant2Code"].ToString());
+		*/
+		
+		if(er_kod.ToString()=="4")
+		{
+			sqlStr = "select Quantity [q] from MA_Requirement R with (nolock) ";
+			sqlStr += " where R.WorkOrderItemId=\'"+dr["WorkOrderItemId"].ToString()+"\' ";
+			sqlStr += " and R.RequirementType=\'"+er_kod.ToString()+"\' ";
+			sqlStr += " and R.InventoryId=\'"+dr["InventoryId"].ToString()+"\' ";
+			sqlStr += " and R.RequirementGroup=\'"+dr["RequirementGroup"].ToString()+"\' ";
+			sqlStr += " and R.Variant1=\'"+dr["ItemVariant1Code"].ToString()+"\' ";
+			sqlStr += " and R.Variant2=\'"+dr["ItemVariant2Code"].ToString()+"\' ";
+		//	MessageBox.Show(sqlStr);
+			dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sqlStr);
+			
+		if(dt==null || dt.Rows.Count&lt;0)
+		return null;
+		
+		gereken_ = Convert.ToDecimal(dt.Rows[0]["q"]);
+		gereken_ = ((gereken_ * 7) / 100) + gereken_;
+	//	MessageBox.Show(gereken_.ToString());
+	
+					query_2 = " select isnull(sum(isnull(IA.Quantity,0)),0) [q]  ";
+					query_2 += " from IM_ItemAllocation IA with (nolock) ";
+					query_2 += " left join IM_ItemVariant IV with (nolock) on (IV.RecId = IA.InventoryVariantId) ";
+					query_2 += " left join IM_VariantItem VI with (nolock) on (VI.RecId = IV.Variant1Id) ";
+					query_2 += " left join IM_VariantItem VI2 with (nolock) on (VI2.RecId = IV.Variant2Id) ";
+					query_2 += " where IA.RequirementGroup=\'"+dr["RequirementGroup"].ToString()+"\' ";
+					query_2 += " and IA.InventoryId=\'"+dr["InventoryId"].ToString()+"\' ";
+					query_2 += " and IA.WorkOrderItemId=\'"+dr["WorkOrderItemId"].ToString()+"\' ";
+					query_2 += " and IA.InventoryVariantId=\'"+dt_varyant.Rows[0]["rec"].ToString()+"\' ";
+				//	query_2 += " and IA.InventoryReceiptItemId=\'"+dr["InventoryReceiptItemId"].ToString()+"\' ";
+					query_2 += " and VI.ItemName=\'"+dr["ItemVariant1Code"].ToString()+"\' ";
+					query_2 += " and VI2.ItemName=\'"+dr["ItemVariant2Code"].ToString()+"\' ";
+					query_2 += " and IA.InventoryReceiptType = 1";
+					// MessageBox.Show(query_2);
+					dt_2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt_2",query_2 );
+				 	if(dt_2==null || dt_2.Rows.Count&lt;0)
+						return null;
+				
+						/*
+							if(Convert.ToDecimal(dr["Quantity"]) &gt; gereken_ )
+								{
+									sender.ShowMessage("Gerekenden Fazla Mal Alım Yapılamaz ! scr{AksesuarGerekenFazlaAlımKontrol}");
+									ev.Cancel = true;
+									return null;
+								}	
+							*/
+					//	MessageBox.Show(query_2);	
+						
+					gecmis_ = Convert.ToDecimal(dt_2.Rows[0]["q"]);		
+					gecmis_tahsis = gecmis_ + Convert.ToDecimal(dr["Quantity"]);
+					
+					if(gecmis_tahsis &gt; gereken_)
+					{
+							sender.ShowMessage("Gerekenden Fazla Mal Alım Yapılamaz ! scr{AksesuarGerekenFazlaAlımKontrol}");
+							ev.Cancel = true;
+							return null;
+					}	
+		}
+	}
+ }
+}
+
+
+</ScriptText>
+</ScriptDefinition>

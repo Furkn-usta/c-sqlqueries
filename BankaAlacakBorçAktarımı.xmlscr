@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BankaAlacakBorçAktarımı" Enabled="true" Priority="0" ScriptName="BankaAlacakBorçAktarımı">
+  <Events>
+    <Event Enabled="true" ObjectName="BankReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="BankReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>
+//Generated on 18.05.2023 09:57:35
+function OnAfterSucceededPost (sender,eventArg)
+{
+    if(BaseObject == null
+    || BaseObject.CurrentRow == null
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+    || Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 2)
+    return null;
+             
+        
+    	foreach (dr in BaseObject.Data.Tables["FI_BankReceiptItem"].Select(""))
+		{
+            if(Convert.ToInt16(dr["ItemOrderNo"])==1)
+                {
+                    if(dr.IsNull("Credit") || Convert.ToDecimal(dr["Credit"]) == 0)
+                        if(!dr.IsNull("Debit") &amp;&amp; Convert.ToDecimal(dr["Debit"]) != 0)
+                            {
+                               debit_ = Convert.ToDecimal(dr["Debit"]);   
+                               credit_ = 0;
+                               rec_= Convert.ToInt32(dr["RecId"]);
+                               forex_rate = Convert.ToDecimal(dr["ForexRate"]);   
+                            }
+                    if(dr.IsNull("Debit") || Convert.ToDecimal(dr["Debit"]) == 0)
+                        if(!dr.IsNull("Credit") &amp;&amp; Convert.ToDecimal(dr["Credit"]) != 0)
+                            {
+                               credit_ = Convert.ToDecimal(dr["Credit"]);   
+                               debit_ = 0;
+                               rec_= Convert.ToInt32(dr["RecId"]);
+                               forex_rate = Convert.ToDecimal(dr["ForexRate"]);   
+                            }
+                }
+             if(Convert.ToInt16(dr["ItemOrderNo"])==2)
+                {
+                    if(dr.IsNull("Credit") || Convert.ToDecimal(dr["Credit"]) == 0)
+                        if(!dr.IsNull("Debit") &amp;&amp; Convert.ToDecimal(dr["Debit"]) != 0)
+                            {
+                               debit2_ = Convert.ToDecimal(dr["Debit"]);   
+                               credit2_ = 0;
+                               rec2_= Convert.ToInt32(dr["RecId"]);
+                               forex_rate2 = Convert.ToDecimal(dr["ForexRate"]); 
+                               forex_debit_2 = Convert.ToDecimal(dr["ForexDebit"]); 
+                               forex_credit_2 = 0;
+                            }
+                    if(dr.IsNull("Debit") || Convert.ToDecimal(dr["Debit"]) == 0)
+                        if(!dr.IsNull("Credit") &amp;&amp; Convert.ToDecimal(dr["Credit"]) != 0)
+                            {
+                               credit2_ = Convert.ToDecimal(dr["Credit"]);   
+                               debit2_ = 0;
+                               rec2_= Convert.ToInt32(dr["RecId"]);
+                               forex_rate2 = Convert.ToDecimal(dr["ForexRate"]);   
+                               forex_debit_2 = 0; 
+                               forex_credit_2 = Convert.ToDecimal(dr["ForexCredit"]); 
+                            }
+                }
+        }
+       /* 
+       
+        MessageBox.Show("1.Satır Borç"+debit_.ToString());
+        MessageBox.Show("1.Satır Alacak"+credit_.ToString());
+        MessageBox.Show("1.Satır Rec "+rec_.ToString());
+        
+        MessageBox.Show("2.Satır Borç"+debit2_.ToString());
+        MessageBox.Show("2.Satır Alacak"+credit2_.ToString());
+		MessageBox.Show("2.Satır Rec "+rec2_.ToString());	
+       */
+        if(Convert.ToDecimal(debit_) == 0)
+                {
+                    upd_chck = credit_ / forex_debit_2;
+                }
+                if(Convert.ToDecimal(credit_) == 0)
+                {
+                    upd_chck = debit_ / forex_credit_2;
+                }
+			 if(Convert.ToDecimal(debit_) == 0)
+                {
+                    upd_ ="update FI_BankReceiptItem set Debit =\'"+credit_.ToString().Replace(",",".")+"\' , ForexRate=\'"+upd_chck.ToString().Replace(",",".")+"\' where RecId="+Convert.ToInt32(rec2_)+" and ReceiptType=\'"+Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])+"\' and ItemOrderNo=2";
+                }
+            if(Convert.ToDecimal(credit_) == 0)
+                {
+                    upd_ ="update FI_BankReceiptItem set Credit =\'"+debit_.ToString().Replace(",",".")+"\' , ForexRate=\'"+upd_chck.ToString().Replace(",",".")+"\' where RecId="+Convert.ToInt32(rec2_)+" and ReceiptType=\'"+Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])+"\' and ItemOrderNo=2";
+                }
+            
+            	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, null, upd_);
+				
+                BaseObject.Get(BaseObject.CurrentRow.Row["RecId"]);		     
+}</ScriptText>
+</ScriptDefinition>

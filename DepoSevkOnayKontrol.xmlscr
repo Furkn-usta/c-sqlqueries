@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DepoSevkOnayKontrol" Enabled="true" Priority="0" ScriptName="DepoSevkOnayKontrol">
+  <Events>
+    <Event Enabled="true" ObjectName="DemandReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="DemandReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null 
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"])!=2)
+		return null;
+		
+
+	foreach (dr  in BaseObject.Data.Tables["IM_DemandReceiptItem"].Select("ReturnReceiptItemId is not null"))
+	{
+		query="select isnull(MAQ.IsShipment,0) [app] from IM_ReceiptItem RI with (nolock) ";
+		query+=" left join MA_WorkOrderQCTest MAQ with(nolock) on MAQ.InventoryReceiptItemId=RI.RecId ";
+		query+=" where RI.RecId="+Convert.ToInt32(dr["ReturnReceiptItemId"]);
+	
+		str = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "str",query);
+	
+			if(str==null || str.Rows.Count&lt;0)
+			   return null;
+	if(!BaseObject.CurrentRow.Row.IsNull("WarehouseId") &amp;&amp; Convert.ToInt32(BaseObject.CurrentRow.Row["WarehouseId"])==8 &amp;&amp; str.Rows[0]["app"].ToString() == "0")
+		{
+		  if(!dr.IsNull("ItemOrderNo"))
+		  {
+		    sender.ShowMessage(dr["ItemOrderNo"].ToString()+". Satır Sevk Edilebilir Onay kutusu işaretlenmemiş. Sevk Edilebilir Onayı olmayan malzemelerin Kayhan Boyalı Depoya  sevki gerçekleştirilemez..! {scr: DepoSevkOnayKontrol}");
+		    ev.Cancel=true;
+		    return null;
+		  }
+		}
+	}
+
+	
+}</ScriptText>
+</ScriptDefinition>

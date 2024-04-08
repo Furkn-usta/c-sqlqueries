@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="BirimMetreMiktarveMetreFiyatAktarım" Enabled="true" Priority="0" ScriptName="BirimMetreMiktarveMetreFiyatAktarım">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 18.01.2024 17:25:44 BirimMetreMiktarveMetreFiyatAktarım
+/*
+
+#@#BirimM|#@#UD_MetreMiktar1000|#@#UD_MetreFiyat0,3|
+#@#BirimM|#@#UD_MetreMiktar1000,00|#@#UD_MetreFiyat,30|
+*/
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null 
+    || BaseObject.CurrentRow == null 
+    || BaseObject.CurrentRow.Row == null
+    || BaseObject.CurrentRow.Row.IsNull("ReceiptType"))
+		return null;
+
+		foreach(ri in BaseObject.Data.Tables["IM_ReceiptItem"].Select(""))
+		{
+		birim = "Kg";
+		miktar_ = 0m;
+		fiyat_ = 0m;
+		if(!ri.IsNull("UD_Unit2"))
+		{
+			if(ri["UD_Unit2"].ToString() == "MTR")
+			{
+			birim = "M";
+			}
+
+            if(!ri.IsNull("Quantity2") &amp;&amp; Convert.ToDecimal(ri["Quantity2"])&gt;0 )
+            {
+                miktar_ = Convert.ToDecimal(ri["Quantity2"]);
+            }
+            
+            if(!ri.IsNull("UnitPrice2") &amp;&amp; Convert.ToDecimal(ri["UnitPrice2"])&gt;0 )
+            {
+                fiyat_ = Convert.ToDecimal(ri["UnitPrice2"]);
+            }
+        }
+		if(birim == "Kg")
+        {
+            if(!ri.IsNull("Quantity") &amp;&amp; Convert.ToDecimal(ri["Quantity"])&gt;0 )
+            {
+                miktar_ = Convert.ToDecimal(ri["Quantity"]);
+            }
+            
+            if(!ri.IsNull("UnitPrice") &amp;&amp; Convert.ToDecimal(ri["UnitPrice"])&gt;0 )
+            {
+                fiyat_ = Convert.ToDecimal(ri["UnitPrice"]);
+            }	
+        }
+		ri.SetField&lt;|string|&gt;("UD_EInvoiceItemExplanation","#@#Birim"+birim.ToString()+"|#@#UD_MetreMiktar"+miktar_.ToString("#.##")+"|#@#UD_MetreFiyat"+fiyat_.ToString("0.00")+"|");	
+		
+		}
+}
+</ScriptText>
+</ScriptDefinition>

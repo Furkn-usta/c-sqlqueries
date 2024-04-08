@@ -1,0 +1,208 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="FarklıŞirketlereMamülKopyalama" Enabled="true" Priority="0" ScriptName="FarklıŞirketlereMamülKopyalama">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="AfterPost" FunctionName="OnAfterPost" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 11.11.2023 09:53:05 FarklıŞirketlereMamülKopyalama
+
+function OnAfterPost(sender,ev)
+{
+	if(BaseObject == null
+	|| BaseObject.CurrentRow == null
+	|| BaseObject.CurrentRow.Row == null
+    || !BaseObject.IsNewRecord
+	|| !BaseObject.CurrentRow.Row.IsNull("AccessCode")
+	|| BaseObject.CurrentRow.Row.IsNull("InventoryCode"))
+		return null;
+	if(BaseObject.ActiveSession.Company.RecId !=1)
+		return null;
+		
+	    study_rec_id = BaseObject.ActiveSession.Company.RecId;
+        user_rec = BaseObject.ActiveSession.User.RecId;
+	    mamul_code = BaseObject.CurrentRow.Row["InventoryCode"].ToString();
+        sb = new StringBuilder();
+        sb.Clear();
+        sb.AppendLine("select isnull(RecId,0) [RecId] from MD_Company MD with (nolock) where MD.RecId not in ("+study_rec_id+")");
+        dt = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "dt", sb.ToString());
+	
+		if(dt == null || dt.Rows.Count &lt;= 0)
+				return null;   
+				
+		if(!BaseObject.CurrentRow.Row.IsNull("UnitId"))
+            unit_id = BaseObject.CurrentRow.Row["UnitId"].ToString();
+        else
+            unit_id = "null";
+
+        if(!BaseObject.CurrentRow.Row.IsNull("InventoryName") )
+            mamul_name = BaseObject.CurrentRow.Row["InventoryName"].ToString();
+        else
+            mamul_name = "";
+
+        if(!BaseObject.CurrentRow.Row.IsNull("HasVariant"))
+        {
+            hasVariaint = BaseObject.CurrentRow.Row["HasVariant"].ToString();
+            if(hasVariaint == "True")
+                hasVariaint="1";
+            else
+              hasVariaint="0";
+        }
+        else
+            hasVariaint = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("HasRowVariant"))
+         {
+            hasRowVariaint = BaseObject.CurrentRow.Row["HasRowVariant"].ToString();
+             if(hasRowVariaint == "True")
+                hasRowVariaint="1";
+            else
+              hasRowVariaint="0";
+        }
+        else
+            hasRowVariaint = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("HasSeries"))
+         {
+            hasSeries = BaseObject.CurrentRow.Row["HasSeries"].ToString();
+            if(hasSeries == "True")
+                hasSeries="1";
+            else
+              hasSeries="0";
+            }
+        else
+            hasSeries = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("HasSeparableSeries"))
+             {
+            hasSeparableSeries = BaseObject.CurrentRow.Row["HasSeparableSeries"].ToString();
+            if(hasSeparableSeries == "True")
+                hasSeparableSeries="1";
+            else
+              hasSeparableSeries="0";
+            }
+        else
+            hasSeparableSeries = "null";
+
+        if(!BaseObject.CurrentRow.Row.IsNull("IsWithholdable"))
+           {
+            isWithholdable = BaseObject.CurrentRow.Row["IsWithholdable"].ToString();
+            if(isWithholdable == "True")
+                isWithholdable="1";
+            else
+              isWithholdable="0";
+            }
+        else
+            isWithholdable = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("SText"))
+             sText = BaseObject.CurrentRow.Row["SText"].ToString();
+        else
+            sText = "NULL";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("CText"))
+             cText = BaseObject.CurrentRow.Row["CText"].ToString();
+        else
+            cText = "NULL";
+
+        
+         if(!BaseObject.CurrentRow.Row.IsNull("Variant1TypeControlType"))
+           {
+            variant1TypeControlType = BaseObject.CurrentRow.Row["Variant1TypeControlType"].ToString();
+            if(variant1TypeControlType == "True")
+                variant1TypeControlType="1";
+            else
+              variant1TypeControlType="0";
+            }
+        else
+            variant1TypeControlType = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("Variant2TypeControlType"))
+           {
+            variant2TypeControlType = BaseObject.CurrentRow.Row["Variant2TypeControlType"].ToString();
+            if(variant2TypeControlType == "True")
+                variant2TypeControlType="1";
+            else
+              variant2TypeControlType="0";
+            }
+        else
+            variant2TypeControlType = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("Variant3TypeControlType"))
+           {
+            variant3TypeControlType = BaseObject.CurrentRow.Row["Variant3TypeControlType"].ToString();
+            if(variant3TypeControlType == "True")
+                variant3TypeControlType="1";
+            else
+              variant3TypeControlType="0";
+            }
+        else
+            variant3TypeControlType = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("Variant4TypeControlType"))
+           {
+            variant4TypeControlType = BaseObject.CurrentRow.Row["Variant4TypeControlType"].ToString();
+            if(variant4TypeControlType == "True")
+                variant4TypeControlType="1";
+            else
+              variant4TypeControlType="0";
+            }
+        else
+            variant4TypeControlType = "null";
+
+         if(!BaseObject.CurrentRow.Row.IsNull("Variant5TypeControlType"))
+           {
+            variant5TypeControlType = BaseObject.CurrentRow.Row["Variant5TypeControlType"].ToString();
+            if(variant5TypeControlType == "True")
+                variant5TypeControlType="1";
+            else
+              variant5TypeControlType="0";
+            }
+        else
+            variant5TypeControlType = "null";
+
+        
+			if(!BaseObject.CurrentRow.Row.IsNull("UUID"))
+            uuid_ = BaseObject.CurrentRow.Row["UUID"].ToString();
+        else
+            uuid_ = "NULL";
+
+
+		for(i=0; i&lt;Convert.ToInt16(dt.Rows.Count); i++)
+		{
+				
+			company_id_ = dt.Rows[i][0].ToString();
+			
+			sb2 = new StringBuilder();
+	        sb2.Clear();
+	    	
+	    	sb2.AppendLine("insert into IM_Item (CompanyId,InventoryType,InventoryCode,InventoryName,IsClass,UnitId");
+	    	sb2.AppendLine(",HasVariant,HasRowVariant,HasSeries,HasSeparableSeries,IsWithholdable");
+            sb2.AppendLine(",Tracking,IsQCRequried,IsTool,IsPackagingMaterial,DepreciationType,Revaluation,PartialDepreciation,IsBuilding,DepreciationStartDate,DepreciationEndDate,PurchaseDate,SoldDate,IsRental,IsIncentive");
+            sb2.AppendLine(",IncentiveStartDate,IncentiveEndDate,ShelfLifeUnit,UseForCommon,UseForPurchase,UseForSale,SText,CText");
+            sb2.AppendLine(",Variant1TypeControlType,Variant2TypeControlType,Variant3TypeControlType,Variant4TypeControlType,Variant5TypeControlType,InUse,IsLocked");
+            sb2.AppendLine(",FWidth,FWeight,FRawWidth,FRawWeight,FProductionMethod,BHoles,BType,ZType1,ZType2,ZType3,TexArtType,DenierType,IsWarp,ProductionType,StyleSampleRevisionNo,IsShoppingSample,IsSample,FromCustomer,SampleStatus,IsChecked,IsApproved");
+            sb2.AppendLine(",InsertedAt,InsertedBy,UpdatedAt,UpdatedBy,UUID,IsAdvantageDepreciation");
+	    	
+            sb2.AppendLine(")");
+
+            sb2.AppendLine("Values(\'"+company_id_.ToString()+"\',6,\'"+mamul_code.ToString()+"\',\'"+mamul_name.ToString()+"\',0,\'"+unit_id.ToString()+"\'");
+	        sb2.AppendLine(",\'"+hasVariaint.ToString()+"\',\'"+hasRowVariaint.ToString()+"\',\'"+hasSeries.ToString()+"\',\'"+hasSeparableSeries.ToString()+"\',\'"+isWithholdable.ToString()+"\'");
+            sb2.AppendLine(",0,0,0,0,1,1,0,0,GetDate(),GetDate(),\'1900-01-01\',\'1900-01-01\',0,0");
+            sb2.AppendLine(",\'1900-01-01\',\'1900-01-01\',1,1,1,1,\'"+sText.ToString()+"\',\'"+cText.ToString()+"\'");
+            sb2.AppendLine(",\'"+variant1TypeControlType.ToString()+"\',\'"+variant2TypeControlType.ToString()+"\',\'"+variant3TypeControlType.ToString()+"\',\'"+variant4TypeControlType.ToString()+"\',\'"+variant5TypeControlType.ToString()+"\',1,0");
+            sb2.AppendLine(",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1");
+            sb2.AppendLine(",GetDate(),\'"+user_rec+"\',GetDate(),\'"+user_rec+"\',\'"+uuid_.ToString()+"\',0");
+
+	        sb2.AppendLine(")");	
+               
+             // MessageBox.Show(sb2.ToString());	  
+             
+	        	dt2 = UtilityFunctions.GetDataTableList(BaseObject.ActiveSession.DBInfo.DBProvider, BaseObject.ActiveSession.DBInfo.Connection, null, "dt2", sb2.ToString());
+		
+		   /*	*/	
+			    
+			//MessageBox.Show(dt.Rows.Count.ToString());	
+		}
+}</ScriptText>
+</ScriptDefinition>

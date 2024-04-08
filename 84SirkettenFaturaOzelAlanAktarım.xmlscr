@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="84SirkettenFaturaOzelAlanAktarim" Enabled="true" Priority="0" ScriptName="84SirkettenFaturaOzelAlanAktarim">
+  <Events>
+    <Event Enabled="true" ObjectName="InvoiceEN" />
+    <Event Enabled="true" EventName="ColumnChanged" FunctionName="OnColumnChanged" ObjectName="InvoiceEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 19.10.2023 15:38:45	84SirkettenFaturaOzelAlanAktarim
+function OnColumnChanged(sender, ev)
+{
+	if( BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null )
+        return null;
+
+    if( ((BaseObject.Name!="InvoiceEN") 
+	|| (ev.Row.Table.TableName != "IM_Invoice") 
+	|| ev.Row.IsNull("ReceiptType") 
+	|| (ev.Row["ReceiptType"].ToString() != "120"))
+	|| (ev.Column.ColumnName != "UD_KarBelgeNo"))
+         return null;
+       /*  
+    if(BaseObject.ActiveSession.User.RecId != 1)
+        return null;
+*/
+    document_no="";
+	if(!ev.Row.IsNull("UD_KarBelgeNo") &amp;&amp; ev.Row["UD_KarBelgeNo"].ToString().Trim() != "")
+		 document_no = ev.Row["UD_KarBelgeNo"].ToString().Trim();
+
+    sb = new StringBuilder();
+    sb.AppendLine("select isnull(I.UD_GCBDATE,\'\') [gcb_tarih], isnull(I.UD_GCBNO,\'\')[gcb_no] , isnull(I.UD_INTACDATE,\'\')[intac_tarih] , isnull(I.UD_DOSYANO,\'\') [dosya_no] , isnull(I.UD_MUSTERINAME,\'\') [m_adi] from IM_Invoice I with (nolock) where  I.DocumentNo=\'"+document_no.ToString()+"\'");
+    sb.AppendLine(" and I.ReceiptType=\'120\' and I.CompanyId=\'9\'");
+  //  MessageBox.Show(sb.ToString());
+     
+     dt= UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt", sb.ToString());
+		if(dt == null || dt.Rows.Count &lt;= 0)
+				return null; 
+
+             gcb_tarih_   = dt.Rows[0]["gcb_tarih"].ToString();
+             gcb_no_      = dt.Rows[0]["gcb_no"].ToString();
+             intac_tarih_ = dt.Rows[0]["intac_tarih"].ToString();
+             dosya_no_    = dt.Rows[0]["dosya_no"].ToString();
+             m_adi_       = dt.Rows[0]["m_adi"].ToString();
+
+            ev.Row.SetField&lt;|string|&gt;("UD_GCBDATE", gcb_tarih_.ToString()); 
+            ev.Row.SetField&lt;|string|&gt;("UD_GCBNO", gcb_no_.ToString()); 
+            ev.Row.SetField&lt;|string|&gt;("UD_INTACDATE", intac_tarih_.ToString()); 
+            ev.Row.SetField&lt;|string|&gt;("UD_DOSYANO", dosya_no_.ToString()); 
+            ev.Row.SetField&lt;|string|&gt;("UD_MUSTERINAME", m_adi_.ToString()); 
+}
+
+</ScriptText>
+</ScriptDefinition>

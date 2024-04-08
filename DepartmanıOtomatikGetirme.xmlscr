@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="DepartmaOtomatikOluşturma" Enabled="true" Priority="0" ScriptName="DepartmaOtomatikOluşturma">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryEN" />
+    <Event Enabled="true" EventName="AfterPost" FunctionName="OnAfterPost" ObjectName="InventoryEN" />
+  </Events>
+  <Histories />
+  <ScriptText>function OnAfterPost(sender, e)
+{ 
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null  )
+		return null;
+   
+   	
+  	 query1="Select ic.CategoryName from IM_Item i left join  IM_Category ic on i.CategoryId=ic.RecId where i.RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+     dt1 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt1", query1);
+     query2="select ic.DepartmentName from  IM_Item i left join  IM_ItemDepartment ic on i.ItemDepartmentId=ic.RecId where i.RecId="+BaseObject.CurrentRow.Row["RecId"].ToString();
+     dt2 = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt2", query2);
+ 
+
+     if((dt2.Rows[0][0]!=null ||dt2.Rows.Count&gt;0) &amp;&amp;(dt1.Rows[0][0].ToString()==dt2.Rows[0][0].ToString()))
+     {  
+       BaseObject.CurrentRow.Row.SetField&lt;|String|&gt;("CategoryId",dt2.Rows[0][0].ToString());
+	       BaseObject.ShowMessage(dt1.Rows[0][0].ToString());
+
+
+     }
+     else 
+     {	x2 ="update IM_Item set ItemDepartmentId= (select RecId from IM_ItemDepartment where DepartmentName=\'"+dt1.Rows[0][0].ToString()+"\') where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString()+"";
+		UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,x2);
+        query3="insert into IM_ItemDepartment(CompanyId,DepartmentCode,DepartmentName)values(\'1\',\'"+dt1.Rows[0][0].ToString()+"\',\'"+dt1.Rows[0][0].ToString()+"\')";
+       	UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,query3);
+    	x3 ="update IM_Item set ItemDepartmentId= (select RecId from IM_ItemDepartment where DepartmentName=\'"+dt1.Rows[0][0].ToString()+"\') where RecId="+BaseObject.CurrentRow.Row["RecId"].ToString()+"";
+		UtilityFunctions.SqlCustomScalarQuery(BaseObject.Connection, BaseObject.Transaction,x3);
+    
+
+     }
+	 }
+ 
+	 
+
+
+</ScriptText>
+</ScriptDefinition>

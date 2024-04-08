@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="Fason Maliyet Hesaplama" Enabled="false" Priority="0" ScriptName="FasonMaliyetiHesaplama">
+  <Events>
+    <Event Enabled="true" ObjectName="WorkOrderEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="WorkOrderEN" />
+  </Events>
+  <Histories />
+  <ScriptText>/*
+Murat Yildirim      19.10.2021 - 18:21
+
+Terbiye iş emri üzerinde fason maliyeti hesaplama scripti.
+Rota kartinda bulunan UD_Fiyat alanindan terbiye iş emrine fiyat aktarimi sağlaniyor.
+Masraf karti ön tanimli olarak geliyor ve rota da belirtilen fiyat bilgisi ile terbiye iş emrindeki miktar hesaplanarak toplam miktar masraf tutarina giriliyor.
+*/
+
+function OnBeforePost(sender, ev)
+{
+	if(BaseObject == null || BaseObject.CurrentRow == null || BaseObject.CurrentRow.Row == null || BaseObject.CurrentRow.Row.IsNull("WorkOrderType") || BaseObject.CurrentRow.Row["WorkOrderType"].ToString() != "10")
+		return null;
+		
+	totalexpanse = 0;
+	
+	foreach( row in BaseObject.Data.Tables["MA_WorkOrderItem"].Select("RouteId is not null and Quantity is not null") )
+	{
+		q = "SELECT ISNULL(UD_Fiyat, \'0\') UD_Fiyat FROM MA_Route WHERE RecId=" + row["RouteId"];
+		res = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "res", q);
+		
+		if(res == null || res.Rows.Count &lt;= 0 || res.Rows[0].IsNull("UD_Fiyat"))
+			return null;
+
+		row.SetField&lt;|decimal|&gt;("UnitPrice", Convert.ToDecimal(res.Rows[0]["UD_Fiyat"]));
+		totalexpanse += Convert.ToDecimal(res.Rows[0]["UD_Fiyat"]) * Convert.ToDecimal(row["Quantity"]);
+	}
+	
+	expenserow = BaseObject.Data.Tables["MA_WorkOrderExpense"].NewRow();
+    BaseObject.Data.Tables["MA_WorkOrderExpense"].Rows.Add(expenserow);
+    expenserow.SetParentRow(BaseObject.CurrentRow.Row);
+    expenserow.SetField&lt;|int|&gt;("ExpenseType", 2); 
+    expenserow.SetField&lt;|int|&gt;("ExpenseId", 8);
+    expenserow.SetField&lt;|decimal|&gt;("Amount", totalexpanse);
+}</ScriptText>
+</ScriptDefinition>

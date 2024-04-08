@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="134ÜretimGirişiVaryantTaşıma" Enabled="true" Priority="0" ScriptName="134ÜretimGirişiVaryantTaşıma">
+  <Events>
+    <Event Enabled="true" ObjectName="InventoryReceiptEN" />
+    <Event Enabled="true" EventName="BeforePost" FunctionName="OnBeforePost" ObjectName="InventoryReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 7.11.2023 09:30:24 134ÜretimGirişiVaryantTaşıma
+
+function OnBeforePost(sender,e)
+{
+	if (BaseObject == null 
+	|| BaseObject.CurrentRow == null 
+	|| BaseObject.CurrentRow.Row == null
+	|| BaseObject.CurrentRow.Row.IsNull("ReceiptType")
+	|| Convert.ToInt32(BaseObject.CurrentRow.Row["ReceiptType"]) != 134)
+			return null;
+		
+		sb = new StringBuilder();		
+		foreach(iri in BaseObject.Data.Tables["IM_ReceiptItem"].Select("WorkOrderProductionId is not null")) 
+		 		{
+				   sb.Clear();
+		           sb.AppendLine("select isnull(WOP.SpecialCode,\'\') [varyant] from MA_WorkOrderProduction WOP with (nolock) where  WOP.RecId="+Convert.ToInt32(iri["WorkOrderProductionId"]));
+		          //MessageBox.Show(sb.ToString());
+		           
+		           dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "dt",sb.ToString());
+		           
+		           if(dt != null &amp;&amp; dt.Rows.Count &gt; 0 &amp;&amp; dt.Rows[0]["varyant"].ToString() != "")
+			           {
+			           	iri.SetField&lt;|string|&gt;("UD_Varyant","@@"+dt.Rows[0]["varyant"].ToString()+"##");
+			           	
+			           }
+		 		}
+}</ScriptText>
+</ScriptDefinition>

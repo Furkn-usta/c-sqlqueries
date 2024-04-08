@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<ScriptDefinition xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Description="ÇekAçiklamaÖzelKod" Enabled="true" Priority="0" ScriptName="ÇekAçiklamaÖzelKod">
+  <Events>
+    <Event Enabled="true" ObjectName="ChequeReceiptEN" />
+    <Event Enabled="true" EventName="AfterSucceededPost" FunctionName="OnAfterSucceededPost" ObjectName="ChequeReceiptEN" />
+  </Events>
+  <Histories />
+  <ScriptText>//Generated on 15.05.2020 12:28:41
+function OnAfterSucceededPost(sender,eventArg){
+	if(BaseObject!=null &amp;&amp; BaseObject.CurrentRow!=null &amp;&amp; BaseObject.CurrentRow.Row!=null &amp;&amp; !BaseObject.CurrentRow.Row.IsNull("ReceiptType") &amp;&amp; Convert.ToInt16(BaseObject.CurrentRow.Row["ReceiptType"])==6 &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Deleted &amp;&amp; BaseObject.CurrentRow.Row.RowState!=DataRowState.Detached  ){
+	    sb =new StringBuilder();  
+	    sb.Clear();
+	    sb.AppendLine(" select C.RecId from FI_Cheque C with (nolock) ");
+		sb.AppendLine(" left join FI_ChequeReceiptItem CRI with (nolock) on C.RecId=CRI.ChequeId " );
+		sb.AppendLine(" left join FI_ChequeReceipt CR with (nolock) on CR.RecId=CRI.ChequeReceiptId ");
+		sb.AppendLine(" where CR.ReceiptType=6 and  CR.RecId="+Convert.ToInt64(BaseObject.CurrentRow.Row["RecId"])+" ");
+	    dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "BB",sb.ToString());	
+		if(dt!=null &amp;&amp; dt.Rows.Count&gt;0){
+	        sb.Clear();
+	        sb.AppendLine(" update C set C.SpecialCode=substring(CR.Explanation,1,15) from FI_Cheque C with (nolock)");
+		    sb.AppendLine(" left join FI_ChequeReceiptItem CRI with (nolock) on C.RecId=CRI.ChequeId " );
+		    sb.AppendLine(" left join FI_ChequeReceipt CR with (nolock) on CR.RecId=CRI.ChequeReceiptId ");
+		    sb.AppendLine(" where CR.ReceiptType=6 and  CR.RecId="+Convert.ToInt64(BaseObject.CurrentRow.Row["RecId"])+" ");
+		    dt = UtilityFunctions.GetDataTableList(BaseObject.Provider, BaseObject.Connection, BaseObject.Transaction, "BB",sb.ToString());	    
+	    }
+	    
+	}    
+}</ScriptText>
+</ScriptDefinition>
